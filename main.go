@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mitchellh/go-wordwrap"
+	"github.com/pterm/pterm"
 )
 
 type Question struct {
@@ -36,7 +36,7 @@ var questions = []Question{
 	},
 }
 
-var choices = []string{"Taro", "Coffee", "Lychee"}
+type doneMsg int
 
 type model struct {
 	done         bool
@@ -62,23 +62,69 @@ func recordAnswer(questionNumber, responseNumber int) {
 }
 
 func printResults() string {
-	sb := strings.Builder{}
+	td := pterm.TableData{
+		{"Question", "Your response", "Correct"},
+	}
 
 	for questionNumber, responseNumber := range answers {
+		// Create the next row of table data
+		td = append(td, []string{})
 
-		sb.WriteString(fmt.Sprintf("Question: %s\n Your response: %s\n Correct: ", questions[questionNumber].Prompt, questions[questionNumber].Choices[responseNumber]))
-
+		td[questionNumber] = []string{
+			questions[questionNumber].Prompt,
+			questions[questionNumber].Choices[responseNumber],
+		}
 		if questions[questionNumber].CorrectAnswerIdx == responseNumber {
-			sb.WriteString("true")
+			td[questionNumber] = append(td[questionNumber], "true")
 		} else {
-			sb.WriteString("false")
+			td[questionNumber] = append(td[questionNumber], "false")
 		}
 	}
-	return sb.String()
+
+	tblStr, _ := pterm.DefaultTable.
+		WithHasHeader().
+		WithData(td).
+		Srender()
+
+	return tblStr
 }
 
 func (m model) Init() tea.Cmd {
 	return nil
+}
+
+func (m model) NextQuestion() model {
+	m.current++
+	if m.current >= len(m.QuestionBank) {
+		m.current = len(m.QuestionBank) - 1
+	}
+	m.cursor = 0
+	return m
+}
+
+func (m model) PreviousQuestion() model {
+	m.current--
+	if m.current <= len(m.QuestionBank) {
+		m.current = 0
+	}
+	m.cursor = 0
+	return m
+}
+
+func (m model) SelectionCursorDown() model {
+	m.cursor++
+	if m.cursor >= len(m.QuestionBank[m.current].Choices) {
+		m.cursor = 0
+	}
+	return m
+}
+
+func (m model) SelectionCursorUp() model {
+	m.cursor--
+	if m.cursor <= len(m.QuestionBank[m.current].Choices) {
+		m.cursor = len(m.QuestionBank[m.current].Choices) - 1
+	}
+	return m
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -89,40 +135,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "enter":
+			m.current++
+			if m.current >= len(m.QuestionBank) {
+				return m, nil
+			}
 			// Record user's submission
 			m.choice = m.QuestionBank[m.current].Choices[m.cursor]
 			recordAnswer(m.current, m.cursor)
 
-			m.current++
-			if m.current >= len(m.QuestionBank) {
-				m.done = true
-				time.Sleep(1 * time.Second)
-				return m, tea.Quit
-			}
-
 		case "down", "j":
-			m.cursor++
-			if m.cursor >= len(m.QuestionBank[m.current].Choices) {
-				m.cursor = 0
-			}
+			m = m.SelectionCursorDown()
 
 		case "up", "k":
-			m.cursor--
-			if m.cursor < 0 {
-				m.cursor = len(m.QuestionBank[m.current].Choices) - 1
-			}
+			m = m.SelectionCursorUp()
 
 		case "left", "h":
-			m.current--
-			if m.current < 0 {
-				m.current = len(m.QuestionBank) - 1
-			}
+			m = m.PreviousQuestion()
 
 		case "right", "l":
-			m.current++
-			if m.current >= len(m.QuestionBank) {
-				m.current = 0
-			}
+			m = m.NextQuestion()
 		}
 	}
 
@@ -140,6 +171,7 @@ func (m model) View() string {
 	switch m.done {
 
 	case false:
+		s.WriteString(fmt.Sprintf("Question #%d\n", m.current))
 		s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
 
 		for i := 0; i < len(currentQ.Choices); i++ {
@@ -151,7 +183,7 @@ func (m model) View() string {
 			s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
 			s.WriteString("\n")
 		}
-		s.WriteString("\n(press q to quit)\n")
+		s.WriteString("\n(press q to quit - {h, <-} for prev - {l, ->} for next)\n")
 	case true:
 		s.WriteString(printResults())
 	}
