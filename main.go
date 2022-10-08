@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mitchellh/go-wordwrap"
@@ -38,6 +39,7 @@ var questions = []Question{
 var choices = []string{"Taro", "Coffee", "Lychee"}
 
 type model struct {
+	done         bool
 	cursor       int
 	choice       string
 	current      int
@@ -53,6 +55,28 @@ func initialModel() model {
 	}
 }
 
+var answers = make(map[int]int)
+
+func recordAnswer(questionNumber, responseNumber int) {
+	answers[questionNumber] = responseNumber
+}
+
+func printResults() string {
+	sb := strings.Builder{}
+
+	for questionNumber, responseNumber := range answers {
+
+		sb.WriteString(fmt.Sprintf("Question: %s\n Your response: %s\n Correct: ", questions[questionNumber].Prompt, questions[questionNumber].Choices[responseNumber]))
+
+		if questions[questionNumber].CorrectAnswerIdx == responseNumber {
+			sb.WriteString("true")
+		} else {
+			sb.WriteString("false")
+		}
+	}
+	return sb.String()
+}
+
 func (m model) Init() tea.Cmd {
 	return nil
 }
@@ -65,9 +89,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "enter":
-			// Send the choice on the channel and exit.
+			// Record user's submission
 			m.choice = m.QuestionBank[m.current].Choices[m.cursor]
-			return m, tea.Quit
+			recordAnswer(m.current, m.cursor)
+
+			m.current++
+			if m.current >= len(m.QuestionBank) {
+				m.done = true
+				time.Sleep(1 * time.Second)
+				return m, tea.Quit
+			}
 
 		case "down", "j":
 			m.cursor++
@@ -101,20 +132,29 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	s := strings.Builder{}
 
+	if m.current >= len(m.QuestionBank) {
+		m.current = len(m.QuestionBank) - 1
+	}
 	currentQ := m.QuestionBank[m.current]
 
-	s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
+	switch m.done {
 
-	for i := 0; i < len(currentQ.Choices); i++ {
-		if m.cursor == i {
-			s.WriteString("(•) ")
-		} else {
-			s.WriteString("( ) ")
+	case false:
+		s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
+
+		for i := 0; i < len(currentQ.Choices); i++ {
+			if m.cursor == i {
+				s.WriteString("(•) ")
+			} else {
+				s.WriteString("( ) ")
+			}
+			s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
+			s.WriteString("\n")
 		}
-		s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
-		s.WriteString("\n")
+		s.WriteString("\n(press q to quit)\n")
+	case true:
+		s.WriteString(printResults())
 	}
-	s.WriteString("\n(press q to quit)\n")
 
 	return s.String()
 }
@@ -122,7 +162,6 @@ func (m model) View() string {
 func main() {
 	p := tea.NewProgram(initialModel())
 
-	// Run returns the model as a tea.Model.
 	err := p.Start()
 	if err != nil {
 		fmt.Println("Oh no:", err)
