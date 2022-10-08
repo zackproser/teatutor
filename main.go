@@ -121,8 +121,8 @@ func (m model) SelectionCursorDown() model {
 
 func (m model) SelectionCursorUp() model {
 	m.cursor--
-	if m.cursor <= len(m.QuestionBank[m.current].Choices) {
-		m.cursor = len(m.QuestionBank[m.current].Choices) - 1
+	if m.cursor < 0 {
+		m.cursor = len(m.QuestionBank[m.current].Choices)
 	}
 	return m
 }
@@ -137,7 +137,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			m.current++
 			if m.current >= len(m.QuestionBank) {
-				return m, nil
+				m.done = true
+				m.current = len(m.QuestionBank) - 1
 			}
 			// Record user's submission
 			m.choice = m.QuestionBank[m.current].Choices[m.cursor]
