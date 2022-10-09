@@ -4,11 +4,20 @@ package main
 // program after the Bubble Tea has exited.
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/wish"
+	bm "github.com/charmbracelet/wish/bubbletea"
+	lm "github.com/charmbracelet/wish/logging"
+	"github.com/gliderlabs/ssh"
 	"github.com/mitchellh/go-wordwrap"
 	"github.com/pterm/pterm"
 )
@@ -197,18 +206,71 @@ func (m model) View() string {
 	return s.String()
 }
 
-func main() {
-	p := tea.NewProgram(initialModel())
-
-	finalModel, err := p.StartReturningModel()
-
-	// Cast finalModel to our own model
-	m, _ := finalModel.(model)
-
-	if err != nil {
-		fmt.Println("Oh no:", err)
-		os.Exit(1)
+// You can wire any Bubble Tea model up to the middleware with a function that
+// handles the incoming ssh.Session. Here we just grab the terminal info and
+// pass it to the new model. You can also return tea.ProgramOptions (such as
+// tea.WithAltScreen) on a session by session basis.
+func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
+	_, _, active := s.Pty()
+	if !active {
+		wish.Fatalln(s, "no active terminal, skipping")
+		return nil, nil
 	}
-	fmt.Print(printResults(m))
-	os.Exit(0)
+	m := initialModel()
+	return m, []tea.ProgramOption{tea.WithAltScreen()}
+}
+
+func main() {
+	// There are two main "modes" to run this bubbletea program in:
+	// 1. Local mode, where you'd prefer to run this program if you're a developer working on it
+	// 2. Server mode, where you're running this service so users can connect and run the bubbletea program over ssh
+
+	if os.Getenv("QUIZ_SERVER") == "true" {
+		host := "0.0.0.0"
+		port := "23234"
+
+		s, err := wish.NewServer(
+			wish.WithAddress(fmt.Sprintf("%s:%d", host, port)),
+			wish.WithHostKeyPath(".ssh/term_info_ed25519"),
+			wish.WithMiddleware(
+				bm.Middleware(teaHandler),
+				lm.Middleware(),
+			),
+		)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		done := make(chan os.Signal, 1)
+		signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+		log.Printf("Starting SSH server on %s:%d", host, port)
+		go func() {
+			if err = s.ListenAndServe(); err != nil {
+				log.Fatalln(err)
+			}
+		}()
+
+		<-done
+		log.Println("Stopping SSH server")
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer func() { cancel() }()
+		if err := s.Shutdown(ctx); err != nil {
+			log.Fatalln(err)
+		}
+	} else {
+
+		p := tea.NewProgram(initialModel())
+
+		finalModel, err := p.StartReturningModel()
+
+		// Cast finalModel to our own model
+		m, _ := finalModel.(model)
+
+		if err != nil {
+			fmt.Println("Oh no:", err)
+			os.Exit(1)
+		}
+		fmt.Print(printResults(m))
+		os.Exit(0)
+	}
 }
