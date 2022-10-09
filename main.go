@@ -41,44 +41,47 @@ type doneMsg int
 type model struct {
 	done         bool
 	cursor       int
-	choice       string
 	current      int
 	QuestionBank []Question
+	answers      map[int]int
 }
 
 func initialModel() model {
 	return model{
 		cursor:       0,
-		choice:       "",
 		current:      0,
 		QuestionBank: questions,
+		answers:      make(map[int]int),
+		done:         false,
 	}
 }
 
-var answers = make(map[int]int)
-
-func recordAnswer(questionNumber, responseNumber int) {
-	answers[questionNumber] = responseNumber
+func getTableHeaders() []string {
+	return []string{"Question", "Your response", "Correct"}
 }
 
-func printResults() string {
+func (m model) recordAnswer(questionNumber, responseNumber int) {
+	m.answers[questionNumber] = responseNumber
+}
+
+func renderCorrectColumn(a, b int) string {
+	if a == b {
+		return "true"
+	}
+	return "false"
+}
+
+func printResults(m model) string {
 	td := pterm.TableData{
-		{"Question", "Your response", "Correct"},
+		getTableHeaders(),
 	}
 
-	for questionNumber, responseNumber := range answers {
-		// Create the next row of table data
-		td = append(td, []string{})
-
-		td[questionNumber] = []string{
-			questions[questionNumber].Prompt,
-			questions[questionNumber].Choices[responseNumber],
-		}
-		if questions[questionNumber].CorrectAnswerIdx == responseNumber {
-			td[questionNumber] = append(td[questionNumber], "true")
-		} else {
-			td[questionNumber] = append(td[questionNumber], "false")
-		}
+	for questionNum, responseNum := range m.answers {
+		td = append(td, []string{
+			wordwrap.WrapString(m.QuestionBank[questionNum].Prompt, 65),
+			wordwrap.WrapString(m.QuestionBank[questionNum].Choices[responseNum], 65),
+			renderCorrectColumn(m.QuestionBank[questionNum].CorrectAnswerIdx, responseNum),
+		})
 	}
 
 	tblStr, _ := pterm.DefaultTable.
@@ -127,22 +130,31 @@ func (m model) SelectionCursorUp() model {
 	return m
 }
 
+func signalDone() tea.Msg {
+	return doneMsg(1)
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+
+	case doneMsg:
+		m.done = true
+		return m, tea.Quit
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
 			return m, tea.Quit
 
 		case "enter":
+			// Record user's submission
+			m.recordAnswer(m.current, m.cursor)
+
 			m.current++
 			if m.current >= len(m.QuestionBank) {
-				m.done = true
 				m.current = len(m.QuestionBank) - 1
+				return m, signalDone
 			}
-			// Record user's submission
-			m.choice = m.QuestionBank[m.current].Choices[m.cursor]
-			recordAnswer(m.current, m.cursor)
 
 		case "down", "j":
 			m = m.SelectionCursorDown()
@@ -171,6 +183,7 @@ func (m model) View() string {
 
 	switch m.done {
 
+	// Quiz is still in progress, render the current question and choice menu
 	case false:
 		s.WriteString(fmt.Sprintf("Question #%d\n", m.current))
 		s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
@@ -185,8 +198,9 @@ func (m model) View() string {
 			s.WriteString("\n")
 		}
 		s.WriteString("\n(press q to quit - {h, <-} for prev - {l, ->} for next)\n")
+	// Quiz is complete, render the user's final score table
 	case true:
-		s.WriteString(printResults())
+		s.WriteString(printResults(m))
 	}
 
 	return s.String()
@@ -195,9 +209,23 @@ func (m model) View() string {
 func main() {
 	p := tea.NewProgram(initialModel())
 
-	err := p.Start()
+	if len(os.Getenv("DEBUG")) > 0 {
+		f, err := tea.LogToFile("debug.log", "debug")
+		if err != nil {
+			fmt.Println("fatal:", err)
+			os.Exit(1)
+		}
+		defer f.Close()
+	}
+
+	finalModel, err := p.StartReturningModel()
+
+	m, _ := finalModel.(model)
+
 	if err != nil {
 		fmt.Println("Oh no:", err)
 		os.Exit(1)
 	}
+	fmt.Print(printResults(m))
+	os.Exit(0)
 }
