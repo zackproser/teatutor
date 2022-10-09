@@ -138,7 +138,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case doneMsg:
-		m.done = true
 		return m, tea.Quit
 
 	case tea.KeyMsg:
@@ -181,27 +180,19 @@ func (m model) View() string {
 	}
 	currentQ := m.QuestionBank[m.current]
 
-	switch m.done {
+	s.WriteString(fmt.Sprintf("Question #%d\n", m.current))
+	s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
 
-	// Quiz is still in progress, render the current question and choice menu
-	case false:
-		s.WriteString(fmt.Sprintf("Question #%d\n", m.current))
-		s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
-
-		for i := 0; i < len(currentQ.Choices); i++ {
-			if m.cursor == i {
-				s.WriteString("(•) ")
-			} else {
-				s.WriteString("( ) ")
-			}
-			s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
-			s.WriteString("\n")
+	for i := 0; i < len(currentQ.Choices); i++ {
+		if m.cursor == i {
+			s.WriteString("(•) ")
+		} else {
+			s.WriteString("( ) ")
 		}
-		s.WriteString("\n(press q to quit - {h, <-} for prev - {l, ->} for next)\n")
-	// Quiz is complete, render the user's final score table
-	case true:
-		s.WriteString(printResults(m))
+		s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
+		s.WriteString("\n")
 	}
+	s.WriteString("\n(press q to quit - {h, <-} for prev - {l, ->} for next)\n")
 
 	return s.String()
 }
@@ -209,17 +200,9 @@ func (m model) View() string {
 func main() {
 	p := tea.NewProgram(initialModel())
 
-	if len(os.Getenv("DEBUG")) > 0 {
-		f, err := tea.LogToFile("debug.log", "debug")
-		if err != nil {
-			fmt.Println("fatal:", err)
-			os.Exit(1)
-		}
-		defer f.Close()
-	}
-
 	finalModel, err := p.StartReturningModel()
 
+	// Cast finalModel to our own model
 	m, _ := finalModel.(model)
 
 	if err != nil {
