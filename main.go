@@ -19,7 +19,6 @@ import (
 	lm "github.com/charmbracelet/wish/logging"
 	"github.com/gliderlabs/ssh"
 	"github.com/mitchellh/go-wordwrap"
-	"github.com/pterm/pterm"
 )
 
 type Question struct {
@@ -28,22 +27,27 @@ type Question struct {
 	CorrectAnswerIdx int
 }
 
-var questions = []Question{
-	{
-		Prompt: "You need to provide AWS credentials to an EC2 instance so that an application running on the instance can contact the S3 and DynamoDB services. How should you provide AWS credentials to the instance?",
-		Choices: []string{
-			"Create an IAM role",
-			"Create an IAM user. Generate security credentials for the IAM user, then write them to ~/.aws/credentials on the EC2 instance",
-			"SSH into the EC2 instance. Export the ${AWS_ACCESS_KEY_ID} and ${AWS_SECRET_ACCESS_KEY} environment variables so that the application running on the instance can contact the other AWS services",
+var (
+	FailureEmoji = "❌"
+	SuccessEmoji = "✅"
+
+	questions = []Question{
+		{
+			Prompt: "You need to provide AWS credentials to an EC2 instance so that an application running on the instance can contact the S3 and DynamoDB services. How should you provide AWS credentials to the instance?",
+			Choices: []string{
+				"Create an IAM role",
+				"Create an IAM user. Generate security credentials for the IAM user, then write them to ~/.aws/credentials on the EC2 instance",
+				"SSH into the EC2 instance. Export the ${AWS_ACCESS_KEY_ID} and ${AWS_SECRET_ACCESS_KEY} environment variables so that the application running on the instance can contact the other AWS services",
+			},
+			CorrectAnswerIdx: 0,
 		},
-		CorrectAnswerIdx: 0,
-	},
-	{
-		Prompt:           "Is it a good idea to learn AWS?",
-		Choices:          []string{"Yes", "No"},
-		CorrectAnswerIdx: 0,
-	},
-}
+		{
+			Prompt:           "Is it a good idea to learn AWS?",
+			Choices:          []string{"Yes", "No"},
+			CorrectAnswerIdx: 0,
+		},
+	}
+)
 
 type doneMsg int
 
@@ -75,30 +79,43 @@ func (m model) recordAnswer(questionNumber, responseNumber int) {
 
 func renderCorrectColumn(a, b int) string {
 	if a == b {
-		return "true"
+		return SuccessEmoji
 	}
-	return "false"
+	return FailureEmoji
+}
+
+func (m model) RenderScore() string {
+	totalQuestions := len(m.QuestionBank)
+	numCorrect := 0
+	for questionNum, responseNum := range m.answers {
+		if m.QuestionBank[questionNum].CorrectAnswerIdx == responseNum {
+			numCorrect++
+		}
+	}
+	floatVal := (float64(numCorrect) * float64(100)) / float64(totalQuestions)
+	return fmt.Sprintf("%.0f%%", floatVal)
 }
 
 func printResults(m model) string {
-	td := pterm.TableData{
-		getTableHeaders(),
-	}
+	sb := strings.Builder{}
+
+	sb.WriteString("Your quiz results: \n\n")
 
 	for questionNum, responseNum := range m.answers {
-		td = append(td, []string{
-			wordwrap.WrapString(m.QuestionBank[questionNum].Prompt, 65),
-			wordwrap.WrapString(m.QuestionBank[questionNum].Choices[responseNum], 65),
-			renderCorrectColumn(m.QuestionBank[questionNum].CorrectAnswerIdx, responseNum),
-		})
+		sb.WriteString(fmt.Sprintf("Question #%d\n\n", questionNum))
+		sb.WriteString(wordwrap.WrapString(m.QuestionBank[questionNum].Prompt, 65))
+		sb.WriteString("\n\n")
+		sb.WriteString(fmt.Sprintf("Your answer: \n\n"))
+		sb.WriteString(
+			fmt.Sprintf("%s %s",
+				renderCorrectColumn(m.QuestionBank[questionNum].CorrectAnswerIdx, responseNum),
+				wordwrap.WrapString(m.QuestionBank[questionNum].Choices[responseNum], 65)))
+		sb.WriteString("\n\n")
 	}
 
-	tblStr, _ := pterm.DefaultTable.
-		WithHasHeader().
-		WithData(td).
-		Srender()
+	sb.WriteString(fmt.Sprintf("Your score: %s\n\n", m.RenderScore()))
 
-	return tblStr
+	return sb.String()
 }
 
 func (m model) Init() tea.Cmd {
@@ -147,6 +164,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case doneMsg:
+		m.done = true
 		return m, tea.Quit
 
 	case tea.KeyMsg:
@@ -189,19 +207,25 @@ func (m model) View() string {
 	}
 	currentQ := m.QuestionBank[m.current]
 
-	s.WriteString(fmt.Sprintf("Question #%d\n", m.current))
-	s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
+	if m.done {
+		out := printResults(m)
+		s.WriteString(out)
+	} else {
 
-	for i := 0; i < len(currentQ.Choices); i++ {
-		if m.cursor == i {
-			s.WriteString("(•) ")
-		} else {
-			s.WriteString("( ) ")
+		s.WriteString(fmt.Sprintf("Question #%d\n", m.current))
+		s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
+
+		for i := 0; i < len(currentQ.Choices); i++ {
+			if m.cursor == i {
+				s.WriteString("(•) ")
+			} else {
+				s.WriteString("( ) ")
+			}
+			s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
+			s.WriteString("\n")
 		}
-		s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
-		s.WriteString("\n")
+		s.WriteString("\n(press q to quit - {h, <-} for prev - {l, ->} for next)\n")
 	}
-	s.WriteString("\n(press q to quit - {h, <-} for prev - {l, ->} for next)\n")
 
 	return s.String()
 }
@@ -227,7 +251,7 @@ func main() {
 
 	if os.Getenv("QUIZ_SERVER") == "true" {
 		host := "0.0.0.0"
-		port := "23234"
+		port := 23234
 
 		s, err := wish.NewServer(
 			wish.WithAddress(fmt.Sprintf("%s:%d", host, port)),
@@ -266,11 +290,14 @@ func main() {
 		// Cast finalModel to our own model
 		m, _ := finalModel.(model)
 
+		_ = m
+
 		if err != nil {
 			fmt.Println("Oh no:", err)
 			os.Exit(1)
 		}
-		fmt.Print(printResults(m))
+		fmt.Println()
+		//		fmt.Print(printResults(m))
 		os.Exit(0)
 	}
 }
