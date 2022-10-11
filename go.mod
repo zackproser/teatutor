@@ -3,9 +3,10 @@ module github.com/zackproser/bubbletea-ssh-aws-quiz
 go 1.18
 
 require (
+	github.com/charmbracelet/bubbles v0.14.0
 	github.com/charmbracelet/bubbletea v0.22.1
 	github.com/charmbracelet/glamour v0.5.0
-	github.com/charmbracelet/lipgloss v0.4.0
+	github.com/charmbracelet/lipgloss v0.5.0
 	github.com/charmbracelet/wish v0.5.0
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/mitchellh/go-wordwrap v1.0.1

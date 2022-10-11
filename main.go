@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
@@ -65,12 +66,15 @@ var (
 type doneMsg int
 
 type model struct {
-	done         bool
-	playingIntro bool
-	cursor       int
-	current      int
-	QuestionBank []Question
-	answers      map[int]int
+	done              bool
+	playingIntro      bool
+	displayingResults bool
+	cursor            int
+	current           int
+	QuestionBank      []Question
+	answers           map[int]int
+	results           string
+	viewport          viewport.Model
 }
 
 func initialModel() model {
@@ -200,6 +204,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.done = true
 		return m, tea.Quit
 
+	case tea.WindowSizeMsg:
+		headerHeight := lipgloss.Height(m.headerView())
+		footerHeight := lipgloss.Height(m.footerView())
+		verticalMarginHeight := headerHeight + footerHeight
+
+		if m.displayingResults {
+
+			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
+			m.viewport.YPosition = headerHeight
+			m.viewport.HighPerformanceRendering = false
+			m.viewport.SetContent(m.results)
+
+			// This is only necessary for high performance rendering, which in
+			// most cases you won't need.
+			//
+			// Render the viewport one line below the header.
+			m.viewport.YPosition = headerHeight + 1
+		} else {
+			m.viewport.Width = msg.Width
+			m.viewport.Height = msg.Height - verticalMarginHeight
+		}
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
@@ -232,36 +258,46 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) View() string {
-	s := strings.Builder{}
+func (m model) RenderIntroView() string {
+	return IntroBannerStyle.Render("Welcome to\nAWS QUIZ OVER SSH\nA Zachary Proser joint\n")
+}
 
+func (m model) RenderQuizView() string {
 	if m.current >= len(m.QuestionBank) {
 		m.current = len(m.QuestionBank) - 1
 	}
 	currentQ := m.QuestionBank[m.current]
 
-	if m.done {
-		out := printResults(m)
-		s.WriteString(out)
-	} else {
-		if m.playingIntro {
-			s.WriteString(IntroBannerStyle.Render("Welcome to\nAWS QUIZ OVER SSH\nA Zachary Proser joint\n"))
+	s := strings.Builder{}
+	s.WriteString(fmt.Sprintf("# Question #%d\n\n", m.current))
+	s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
+
+	for i := 0; i < len(currentQ.Choices); i++ {
+		if m.cursor == i {
+			s.WriteString(fmt.Sprintf("[%s] ", SuccessEmoji))
 		} else {
-
-			s.WriteString(fmt.Sprintf("# Question #%d\n\n", m.current))
-			s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
-
-			for i := 0; i < len(currentQ.Choices); i++ {
-				if m.cursor == i {
-					s.WriteString(fmt.Sprintf("[%s] ", SuccessEmoji))
-				} else {
-					s.WriteString("[  ] ")
-				}
-				s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
-				s.WriteString("\n\n")
-			}
-			s.WriteString("\n # (press q to quit - {h, <-} for prev - {l, ->} for next)\n")
+			s.WriteString("[  ] ")
 		}
+		s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
+		s.WriteString("\n\n")
+	}
+	s.WriteString("\n # (press q to quit - {h, <-} for prev - {l, ->} for next)\n")
+	return s.String()
+}
+
+func (m model) RenderResultsView() string {
+	return printResults(m)
+}
+
+func (m model) View() string {
+	s := strings.Builder{}
+
+	if m.done {
+		s.WriteString(m.RenderResultsView())
+	} else if m.playingIntro {
+		s.WriteString(m.RenderIntroView())
+	} else {
+		s.WriteString(m.RenderQuizView())
 	}
 
 	var final string
@@ -286,7 +322,26 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		return nil, nil
 	}
 	m := initialModel()
-	return m, []tea.ProgramOption{tea.WithAltScreen()}
+	return m, []tea.ProgramOption{}
+}
+
+func (m model) headerView() string {
+	title := HeaderStyle.Render("Mr. Pager")
+	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(title)))
+	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
+}
+
+func (m model) footerView() string {
+	info := HeaderStyle.Render(fmt.Sprintf("%3.f%%", m.viewport.ScrollPercent()*100))
+	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(info)))
+	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func main() {
