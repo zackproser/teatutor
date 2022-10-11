@@ -22,6 +22,7 @@ import (
 	lm "github.com/charmbracelet/wish/logging"
 	"github.com/gliderlabs/ssh"
 	"github.com/mitchellh/go-wordwrap"
+	"golang.org/x/term"
 )
 
 var IntroBannerStyle = lipgloss.NewStyle().
@@ -57,6 +58,21 @@ var (
 		},
 		{
 			Prompt:           "Is it a good idea to learn AWS?",
+			Choices:          []string{"Yes", "No"},
+			CorrectAnswerIdx: 0,
+		},
+		{
+			Prompt:           "What is the maximum amount of time a lamdba function can run for?",
+			Choices:          []string{"10 minutes", "15 minutes", "25 minutes"},
+			CorrectAnswerIdx: 1,
+		},
+		{
+			Prompt:           "Can you use S3 buckets to host a static web site?",
+			Choices:          []string{"Yes", "No"},
+			CorrectAnswerIdx: 0,
+		},
+		{
+			Prompt:           "Should you leak sensitive secrets by uploading them to a public S3 bucket?",
 			Choices:          []string{"Yes", "No"},
 			CorrectAnswerIdx: 0,
 		},
@@ -175,6 +191,12 @@ func (m model) SelectionCursorUp() model {
 	return m
 }
 
+type displayResultsMsg int
+
+func signalDisplayResults() tea.Msg {
+	return displayResultsMsg(1)
+}
+
 func signalDone() tea.Msg {
 	return doneMsg(1)
 }
@@ -190,7 +212,19 @@ func triggerDisableIntro() tea.Msg {
 	return stopIntro()
 }
 
+func sendWindowSizeMsg() tea.Msg {
+	width, height, _ := term.GetSize(0)
+	return tea.WindowSizeMsg{
+		Width:  width,
+		Height: height,
+	}
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var (
+		cmd  tea.Cmd
+		cmds []tea.Cmd
+	)
 	switch msg := msg.(type) {
 
 	case initMsg:
@@ -199,6 +233,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case stopIntroMsg:
 		m.playingIntro = false
 		return m, nil
+
+	case displayResultsMsg:
+		m.displayingResults = true
+		m.results = printResults(m)
+		return m, sendWindowSizeMsg
 
 	case doneMsg:
 		m.done = true
@@ -214,7 +253,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
 			m.viewport.YPosition = headerHeight
 			m.viewport.HighPerformanceRendering = false
-			m.viewport.SetContent(m.results)
+			out, _ := glamour.Render(m.results, "dark")
+			m.viewport.SetContent(out)
 
 			// This is only necessary for high performance rendering, which in
 			// most cases you won't need.
@@ -238,7 +278,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.current++
 			if m.current >= len(m.QuestionBank) {
 				m.current = len(m.QuestionBank) - 1
-				return m, signalDone
+				return m, signalDisplayResults
 			}
 
 		case "down", "j":
@@ -255,7 +295,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	return m, nil
+	// Handle keyboard and mouse events in the viewport
+	m.viewport, cmd = m.viewport.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m model) RenderIntroView() string {
@@ -286,13 +330,13 @@ func (m model) RenderQuizView() string {
 }
 
 func (m model) RenderResultsView() string {
-	return printResults(m)
+	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 }
 
 func (m model) View() string {
 	s := strings.Builder{}
 
-	if m.done {
+	if m.displayingResults {
 		s.WriteString(m.RenderResultsView())
 	} else if m.playingIntro {
 		s.WriteString(m.RenderIntroView())
@@ -302,7 +346,7 @@ func (m model) View() string {
 
 	var final string
 
-	if m.playingIntro {
+	if m.playingIntro || m.displayingResults {
 		final = s.String()
 	} else {
 		final, _ = glamour.Render(s.String(), "dark")
@@ -326,7 +370,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 }
 
 func (m model) headerView() string {
-	title := HeaderStyle.Render("Mr. Pager")
+	title := HeaderStyle.Render("Your AWS SSH Quiz Results!")
 	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(title)))
 	return lipgloss.JoinHorizontal(lipgloss.Center, title, line)
 }

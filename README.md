@@ -5,6 +5,10 @@ It helps you study for AWS certification exams by providing a high quality set o
 
 When you complete your 
 
+# Demo 
+
+See [https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4](https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4)
+
 # Usage 
 
 ## Run locally 
