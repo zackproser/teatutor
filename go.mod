@@ -1,4 +1,4 @@
-module z/z
+module github.com/zackproser/bubbletea-ssh-aws-quiz
 
 go 1.18
 

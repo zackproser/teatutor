@@ -14,12 +14,25 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/wish"
 	bm "github.com/charmbracelet/wish/bubbletea"
 	lm "github.com/charmbracelet/wish/logging"
 	"github.com/gliderlabs/ssh"
 	"github.com/mitchellh/go-wordwrap"
 )
+
+var IntroBannerStyle = lipgloss.NewStyle().
+	Bold(true).
+	Foreground(lipgloss.Color("#13EC1F")).
+	Align(lipgloss.Center).
+	Width(24).
+	Margin(2)
+
+var HeaderStyle = lipgloss.NewStyle().
+	Bold(true).
+	Foreground(lipgloss.Color("#FAFAFA")).
+	Background(lipgloss.Color("#7D56F4"))
 
 type Question struct {
 	Prompt           string
@@ -53,6 +66,7 @@ type doneMsg int
 
 type model struct {
 	done         bool
+	playingIntro bool
 	cursor       int
 	current      int
 	QuestionBank []Question
@@ -66,6 +80,7 @@ func initialModel() model {
 		QuestionBank: questions,
 		answers:      make(map[int]int),
 		done:         false,
+		playingIntro: true,
 	}
 }
 
@@ -118,8 +133,10 @@ func printResults(m model) string {
 	return sb.String()
 }
 
+type initMsg int
+
 func (m model) Init() tea.Cmd {
-	return nil
+	return func() tea.Msg { return initMsg(1) }
 }
 
 func (m model) NextQuestion() model {
@@ -160,8 +177,26 @@ func signalDone() tea.Msg {
 	return doneMsg(1)
 }
 
+func stopIntro() tea.Msg {
+	return stopIntroMsg(1)
+}
+
+type stopIntroMsg int
+
+func triggerDisableIntro() tea.Msg {
+	<-time.After(3 * time.Second)
+	return stopIntro()
+}
+
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+
+	case initMsg:
+		return m, triggerDisableIntro
+
+	case stopIntroMsg:
+		m.playingIntro = false
+		return m, nil
 
 	case doneMsg:
 		m.done = true
@@ -211,20 +246,24 @@ func (m model) View() string {
 		out := printResults(m)
 		s.WriteString(out)
 	} else {
+		if m.playingIntro {
+			s.WriteString(IntroBannerStyle.Render("Welcome to\nAWS QUIZ OVER SSH\nA Zachary Proser joint\n"))
+		} else {
 
-		s.WriteString(fmt.Sprintf("Question #%d\n", m.current))
-		s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
+			s.WriteString(fmt.Sprintf("Question #%d\n", m.current))
+			s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
 
-		for i := 0; i < len(currentQ.Choices); i++ {
-			if m.cursor == i {
-				s.WriteString("(•) ")
-			} else {
-				s.WriteString("( ) ")
+			for i := 0; i < len(currentQ.Choices); i++ {
+				if m.cursor == i {
+					s.WriteString("(•) ")
+				} else {
+					s.WriteString("( ) ")
+				}
+				s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
+				s.WriteString("\n")
 			}
-			s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
-			s.WriteString("\n")
+			s.WriteString("\n(press q to quit - {h, <-} for prev - {l, ->} for next)\n")
 		}
-		s.WriteString("\n(press q to quit - {h, <-} for prev - {l, ->} for next)\n")
 	}
 
 	return s.String()
