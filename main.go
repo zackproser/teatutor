@@ -14,6 +14,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/wish"
 	bm "github.com/charmbracelet/wish/bubbletea"
@@ -30,7 +31,6 @@ var IntroBannerStyle = lipgloss.NewStyle().
 	Margin(2)
 
 var HeaderStyle = lipgloss.NewStyle().
-	Bold(true).
 	Foreground(lipgloss.Color("#FAFAFA")).
 	Background(lipgloss.Color("#7D56F4"))
 
@@ -114,21 +114,19 @@ func (m model) RenderScore() string {
 func printResults(m model) string {
 	sb := strings.Builder{}
 
-	sb.WriteString("Your quiz results: \n\n")
+	sb.WriteString("# Your quiz results: \n\n")
 
 	for questionNum, responseNum := range m.answers {
-		sb.WriteString(fmt.Sprintf("Question #%d\n\n", questionNum))
-		sb.WriteString(wordwrap.WrapString(m.QuestionBank[questionNum].Prompt, 65))
-		sb.WriteString("\n\n")
-		sb.WriteString(fmt.Sprintf("Your answer: \n\n"))
+		sb.WriteString(fmt.Sprintf("**Question** %d \n\n", questionNum))
+		sb.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(m.QuestionBank[questionNum].Prompt, 65)))
+		sb.WriteString(fmt.Sprintf("**Your answer**:\n\n"))
 		sb.WriteString(
-			fmt.Sprintf("%s %s",
+			fmt.Sprintf("%s %s\n\n",
 				renderCorrectColumn(m.QuestionBank[questionNum].CorrectAnswerIdx, responseNum),
 				wordwrap.WrapString(m.QuestionBank[questionNum].Choices[responseNum], 65)))
-		sb.WriteString("\n\n")
 	}
 
-	sb.WriteString(fmt.Sprintf("Your score: %s\n\n", m.RenderScore()))
+	sb.WriteString(fmt.Sprintf("# Your score: %s", m.RenderScore()))
 
 	return sb.String()
 }
@@ -250,23 +248,31 @@ func (m model) View() string {
 			s.WriteString(IntroBannerStyle.Render("Welcome to\nAWS QUIZ OVER SSH\nA Zachary Proser joint\n"))
 		} else {
 
-			s.WriteString(fmt.Sprintf("Question #%d\n", m.current))
+			s.WriteString(fmt.Sprintf("# Question #%d\n\n", m.current))
 			s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
 
 			for i := 0; i < len(currentQ.Choices); i++ {
 				if m.cursor == i {
-					s.WriteString("(•) ")
+					s.WriteString(fmt.Sprintf("[%s] ", SuccessEmoji))
 				} else {
-					s.WriteString("( ) ")
+					s.WriteString("[  ] ")
 				}
 				s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
-				s.WriteString("\n")
+				s.WriteString("\n\n")
 			}
-			s.WriteString("\n(press q to quit - {h, <-} for prev - {l, ->} for next)\n")
+			s.WriteString("\n # (press q to quit - {h, <-} for prev - {l, ->} for next)\n")
 		}
 	}
 
-	return s.String()
+	var final string
+
+	if m.playingIntro {
+		final = s.String()
+	} else {
+		final, _ = glamour.Render(s.String(), "dark")
+	}
+
+	return final
 }
 
 // You can wire any Bubble Tea model up to the middleware with a function that
