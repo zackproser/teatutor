@@ -102,16 +102,15 @@ func (m model) RenderScore() string {
 func printResults(m model) string {
 	sb := strings.Builder{}
 
-	sb.WriteString("# Your quiz results: \n\n")
-
 	for questionNum, responseNum := range m.answers {
-		sb.WriteString(fmt.Sprintf("**Question** %d \n\n", questionNum))
+		sb.WriteString(fmt.Sprintf("**Question %d** \n\n", questionNum))
 		sb.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(m.QuestionBank[questionNum].Prompt, 65)))
 		sb.WriteString(fmt.Sprintf("**Your answer**:\n\n"))
 		sb.WriteString(
 			fmt.Sprintf("%s %s\n\n",
 				renderCorrectColumn(m.QuestionBank[questionNum].CorrectAnswerIdx, responseNum),
 				wordwrap.WrapString(m.QuestionBank[questionNum].Choices[responseNum], 65)))
+		sb.WriteString("\n\n\n\n")
 	}
 
 	sb.WriteString(fmt.Sprintf("# Your score: %s", m.RenderScore()))
@@ -193,11 +192,6 @@ func stopIntro() tea.Msg {
 	return stopIntroMsg(1)
 }
 
-func disableIntroAfterDelay() tea.Msg {
-	<-time.After(3 * time.Second)
-	return stopIntro()
-}
-
 func sendWindowSizeMsg() tea.Msg {
 	width, height, _ := term.GetSize(0)
 	return tea.WindowSizeMsg{
@@ -212,9 +206,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds []tea.Cmd
 	)
 	switch msg := msg.(type) {
-
-	case initMsg:
-		return m, disableIntroAfterDelay
 
 	case stopIntroMsg:
 		m.playingIntro = false

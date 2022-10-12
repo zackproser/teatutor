@@ -29,13 +29,43 @@ questions:
       - "25 minutes"
     correct_answer_idx: 1
   - category: "Lambda"
-    prompt: "Which of the following are valid ways to trigger a lambda function other than a web request?"
-    choices:
-      - "CloudWatch metric filters and EventBridge cron"
-      - "EventBridge schedule syntax"
-      - "DynamoDB streams and S3 buckets"
+    prompt: "Which of the following are valid ways to invoke a lambda function?"
+    choices: 
+      - "Invoke directly via the Lambda console"
+      - "Calling the function URL HTTP(s) endpoint"
+      - "Calling the Lambda API"
+      - "Using the AWS CLI or SDKs"
+      - "Invoke via events from other AWS services"
+      - "Reading from a stream or queue"
       - "All of the above"
-    correct_answer_idx: 3
+    correct_answer_idx: 6
+  - category: "Lambda"
+    prompt: "What is the difference between asynchronous and synchronous lambda invocation?"
+    choices: 
+      - "Synchronous invocation ensures that all consumers of the lambda function will receive the same results"
+      - "Synchronous invocation waits for lambda to process the event and return a response, whereas asynchronous invocation queues the work but returns a response immediately"
+      - "Asynchronous invocation is less expensive and more reliable"
+    correct_answer_idx: 1
+  - category: "Lambda"
+    prompt: "In the context of Lambda, what is a trigger?"
+    choices: 
+      - "A trigger is a special condition you specify when creating your lambda that determines which inputs the function will accept"
+      - "A trigger is a Lambda resource or a resource in another service that you configure to invoke your function in response to lifecycle events, external requests, or on a schedule"
+      - "A trigger is a safety feature that allows you to quickly stop a lambda function from processing. It can be used to prevent your lambda from operating on unsafe data"
+    correct_answer_idx: 1
+  - category: "Lambda"
+    prompt: "Can a single Lambda function have more than one trigger?"
+    choices: 
+      - "Yes"
+      - "No"
+    correct_answer_idx: 0
+  - category: "Lambda"
+    prompt: "If a lambda has multiple triggers configured, what is true of every event object sent to the function?"
+    choices: 
+      - "The event may or may not contain data from multiple sources or triggers"
+      - "The event will contain data from the most recent invoker of the function"
+      - "Each event will only ever contain data from a single client or trigger, because each invocation is independent, even when multiple clients or triggers are configured"
+    correct_answer_idx: 2
   - category: "S3"
     prompt: "All S3 Bucket names must be globally unique across all of AWS"
     choices:
