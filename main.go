@@ -193,7 +193,7 @@ func stopIntro() tea.Msg {
 	return stopIntroMsg(1)
 }
 
-func triggerDisableIntro() tea.Msg {
+func disableIntroAfterDelay() tea.Msg {
 	<-time.After(3 * time.Second)
 	return stopIntro()
 }
@@ -214,7 +214,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case initMsg:
-		return m, triggerDisableIntro
+		return m, disableIntroAfterDelay
 
 	case stopIntroMsg:
 		m.playingIntro = false
@@ -259,6 +259,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "enter":
+			// If we're playing the intro and the user presses enter, it means they're impatient to get started
+			if m.playingIntro {
+				return m, stopIntro
+			}
+
 			// If we're in category selection mode, and the user presses enter, they've selected a category
 			// of questions to practice, so use it to filter questions
 
@@ -300,7 +305,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) RenderIntroView() string {
-	return IntroBannerStyle.Render("Welcome to\nAWS QUIZ OVER SSH\nA Zachary Proser joint\n")
+	return IntroBannerStyle.Render("Welcome to\nAWS QUIZ OVER SSH\nA Zachary Proser joint\n\n\nPress enter to get started")
 }
 
 func (m model) RenderCategorySelectionView() string {
@@ -447,19 +452,10 @@ func main() {
 
 		p := tea.NewProgram(initialModel())
 
-		finalModel, err := p.StartReturningModel()
-
-		// Cast finalModel to our own model
-		m, _ := finalModel.(model)
-
-		_ = m
-
+		err := p.Start()
 		if err != nil {
-			fmt.Println("Oh no:", err)
+			fmt.Println("Error running Bubbletea program:", err)
 			os.Exit(1)
 		}
-		fmt.Println()
-		//		fmt.Print(printResults(m))
-		os.Exit(0)
 	}
 }
