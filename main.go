@@ -148,6 +148,10 @@ func (m model) PreviousQuestion() model {
 }
 
 func (m model) SelectionCursorDown() model {
+	if m.playingIntro {
+		return m
+	}
+
 	m.cursor++
 	if m.categorySelection {
 		if m.cursor >= len(m.categories) {
@@ -162,6 +166,10 @@ func (m model) SelectionCursorDown() model {
 }
 
 func (m model) SelectionCursorUp() model {
+	if m.playingIntro {
+		return m
+	}
+
 	m.cursor--
 	if m.cursor < 0 {
 		if m.categorySelection {
