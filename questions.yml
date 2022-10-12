@@ -1,0 +1,49 @@
+---
+questions:
+  - category: "IAM"
+    prompt: "What is a trust policy in the context of an IAM role?"
+    choices:
+      - "A trust policy determines which principals are allowed to assume the IAM role"
+      - "A trust policy determines which AWS accounts are allowed to assume the IAM role"
+      - "A trust policy determines which security credentials can be associated with the IAM role"
+      - "A trust policy determines which services the IAM role is allowed to operate on"
+    correct_answer_idx: 0
+  - category: "IAM"
+    prompt: "You need to provide AWS credentials to an EC2 instance so that an application running on the instance can contact the S3 and DynamoDB services. How should you provide AWS credentials to the instance?"
+    choices:
+      - "Create an IAM role. Assign the role to an instance profile. Attach the instance profile to the EC2 instance"
+      - "Create an IAM user. Generate security credentials for the IAM user, then write them to ~/.aws/credentials on the EC2 instance"
+      - "SSH into the EC2 instance. Export the ${AWS_ACCESS_KEY_ID} and ${AWS_SECRET_ACCESS_KEY} environment variables so that the application running on the instance can contact the other AWS services"
+    correct_answer_idx: 0
+  - category: "IAM"
+    prompt: "What should you do with the root account user?"
+    choices:
+      - "Use it to resolve permissions issues that are preventing services from functioning properly in your AWS account"
+      - "Store its login credentials in a secure password manager. Then, never use the root user. Create an IAM user and attach Administrator permissions to it. Use the IAM user for daily work"
+      - "Only log into when you need to administer sensitive account settings such as billing, address or payment information"
+  - category: "Lambda"
+    prompt: "What is the maximum amount of time a lamdba function can run for?"
+    choices:
+      - "10 minutes"
+      - "15 minutes"
+      - "25 minutes"
+    correct_answer_idx: 1
+  - category: "Lambda"
+    prompt: "Which of the following are valid ways to trigger a lambda function other than a web request?"
+    choices:
+      - "CloudWatch metric filters and EventBridge cron"
+      - "EventBridge schedule syntax"
+      - "DynamoDB streams and S3 buckets"
+      - "All of the above"
+    correct_answer_idx: 3
+  - category: "S3"
+    prompt: "All S3 Bucket names must be globally unique across all of AWS"
+    choices:
+      - "True"
+      - "False"
+    correct_answer_idx: 0
+  - category: "S3"
+    prompt: "You can use S3 to host a static web site"
+    choices:
+      - "True"
+      - "False"

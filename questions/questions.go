@@ -1,11 +1,24 @@
 package questions
 
-import "sync"
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"sync"
+
+	"gopkg.in/yaml.v2"
+)
+
+type Questions struct {
+	Questions []Question `yaml:"questions"`
+}
 
 type Question struct {
-	Prompt           string
-	Choices          []string
-	CorrectAnswerIdx int
+	Category         string   `yaml:"category"`
+	Prompt           string   `yaml:"prompt"`
+	Choices          []string `yaml:"choices"`
+	CorrectAnswerIdx int      `yaml:"correct_answer_idx"`
 }
 
 var (
@@ -13,78 +26,48 @@ var (
 	mut = sync.Mutex{}
 )
 
-func init() {
-	loadInitialQuestions()
+func loadQuestionsFromYaml(filepath string) ([]Question, error) {
+	q := &Questions{}
+	if _, badFilePathErr := os.Stat(filepath); os.IsNotExist(badFilePathErr) {
+		return q.Questions, badFilePathErr
+	}
+	f, openErr := os.Open(filepath)
+	if openErr != nil {
+		return q.Questions, openErr
+	}
+
+	bytes, readErr := ioutil.ReadAll(f)
+	if readErr != nil {
+		return q.Questions, readErr
+	}
+
+	unmarshalErr := yaml.Unmarshal(bytes, q)
+	if unmarshalErr != nil {
+		return q.Questions, unmarshalErr
+	}
+	return q.Questions, nil
 }
 
-func loadInitialQuestions() {
-	defer mut.Unlock()
-	mut.Lock()
-
-	m["IAM"] = []Question{
-		{
-			Prompt: "What is a trust policy in the context of an IAM role?",
-			Choices: []string{
-				"A trust policy determines which principals are allowed to assume the IAM role",
-				"A trust policy determines which AWS accounts are allowed to assume the IAM role",
-				"A trust policy determines which services the IAM role is allowed to operate on",
-				"A trust policy determines which security credentials can be associated with the IAM role",
-			},
-			CorrectAnswerIdx: 0,
-		},
-		{
-			Prompt: "You need to provide AWS credentials to an EC2 instance so that an application running on the instance can contact the S3 and DynamoDB services. How should you provide AWS credentials to the instance?",
-			Choices: []string{
-				"Create an IAM role. Assign the role to an instance profile. Attach the instance profile to the EC2 instance",
-				"Create an IAM user. Generate security credentials for the IAM user, then write them to ~/.aws/credentials on the EC2 instance",
-				"SSH into the EC2 instance. Export the ${AWS_ACCESS_KEY_ID} and ${AWS_SECRET_ACCESS_KEY} environment variables so that the application running on the instance can contact the other AWS services",
-			},
-			CorrectAnswerIdx: 0,
-		},
-		{
-			Prompt: "What should you do with the root account user?",
-			Choices: []string{
-				"Use it to resolve permissions issues that are preventing services from functioning properly in your AWS account",
-				"Store its login credentials in a secure password manager. Then, never use the root user. Create an IAM user and attach Administrator permissions to it. Use the IAM user for daily work",
-				"Only log into when you need to administer sensitive account settings such as billing, address or payment information",
-				"Use it for debugging services that might log sensitive information like usernames, passwords or social security numbers",
-			},
-			CorrectAnswerIdx: 1,
-		},
+func loadQuestionsIntoMemory(questions []Question) {
+	for _, question := range questions {
+		m[question.Category] = append(m[question.Category], question)
 	}
+}
 
-	m["Lambda"] = []Question{
-		{
-			Prompt:           "What is the maximum amount of time a lamdba function can run for?",
-			Choices:          []string{"10 minutes", "15 minutes", "25 minutes"},
-			CorrectAnswerIdx: 1,
-		},
-
-		{
-			Prompt: "Which of the following are valid ways to trigger a lambda function other than a web request?",
-			Choices: []string{
-				"CloudWatch metric filters and EventBridge cron",
-				"EventBridge schedule syntax",
-				"DynamoDB streams and S3 buckets",
-				"All of the above",
-			},
-			CorrectAnswerIdx: 3,
-		},
+func localYamlPath() string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Error looking up current directory")
 	}
+	return filepath.Join(cwd, "questions.yml")
+}
 
-	m["S3"] = []Question{
-		{
-			Prompt:           "Can you use S3 buckets to host a static web site?",
-			Choices:          []string{"Yes", "No"},
-			CorrectAnswerIdx: 0,
-		},
-
-		{
-			Prompt:           "Should you leak sensitive secrets by uploading them to a public S3 bucket?",
-			Choices:          []string{"Yes", "No"},
-			CorrectAnswerIdx: 1,
-		},
+func init() {
+	q, err := loadQuestionsFromYaml(localYamlPath())
+	if err != nil {
+		fmt.Printf("Error loading questions from YAML: %s\n", err)
 	}
+	loadQuestionsIntoMemory(q)
 }
 
 func ListCategories() []string {
