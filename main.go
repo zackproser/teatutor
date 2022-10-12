@@ -22,6 +22,7 @@ import (
 	lm "github.com/charmbracelet/wish/logging"
 	"github.com/gliderlabs/ssh"
 	"github.com/mitchellh/go-wordwrap"
+	"github.com/zackproser/bubbletea-ssh-aws-quiz/questions"
 	"golang.org/x/term"
 )
 
@@ -36,58 +37,22 @@ var HeaderStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#FAFAFA")).
 	Background(lipgloss.Color("#7D56F4"))
 
-type Question struct {
-	Prompt           string
-	Choices          []string
-	CorrectAnswerIdx int
-}
-
 var (
 	FailureEmoji = "❌"
 	SuccessEmoji = "✅"
-
-	questions = []Question{
-		{
-			Prompt: "You need to provide AWS credentials to an EC2 instance so that an application running on the instance can contact the S3 and DynamoDB services. How should you provide AWS credentials to the instance?",
-			Choices: []string{
-				"Create an IAM role",
-				"Create an IAM user. Generate security credentials for the IAM user, then write them to ~/.aws/credentials on the EC2 instance",
-				"SSH into the EC2 instance. Export the ${AWS_ACCESS_KEY_ID} and ${AWS_SECRET_ACCESS_KEY} environment variables so that the application running on the instance can contact the other AWS services",
-			},
-			CorrectAnswerIdx: 0,
-		},
-		{
-			Prompt:           "Is it a good idea to learn AWS?",
-			Choices:          []string{"Yes", "No"},
-			CorrectAnswerIdx: 0,
-		},
-		{
-			Prompt:           "What is the maximum amount of time a lamdba function can run for?",
-			Choices:          []string{"10 minutes", "15 minutes", "25 minutes"},
-			CorrectAnswerIdx: 1,
-		},
-		{
-			Prompt:           "Can you use S3 buckets to host a static web site?",
-			Choices:          []string{"Yes", "No"},
-			CorrectAnswerIdx: 0,
-		},
-		{
-			Prompt:           "Should you leak sensitive secrets by uploading them to a public S3 bucket?",
-			Choices:          []string{"Yes", "No"},
-			CorrectAnswerIdx: 0,
-		},
-	}
 )
 
 type doneMsg int
 
 type model struct {
 	done              bool
+	categorySelection bool
 	playingIntro      bool
 	displayingResults bool
 	cursor            int
 	current           int
-	QuestionBank      []Question
+	categories        []string
+	QuestionBank      []questions.Question
 	answers           map[int]int
 	results           string
 	viewport          viewport.Model
@@ -95,12 +60,15 @@ type model struct {
 
 func initialModel() model {
 	return model{
-		cursor:       0,
-		current:      0,
-		QuestionBank: questions,
-		answers:      make(map[int]int),
-		done:         false,
-		playingIntro: true,
+		cursor:            0,
+		current:           0,
+		categories:        questions.ListCategories(),
+		QuestionBank:      make([]questions.Question, 0),
+		answers:           make(map[int]int),
+		done:              false,
+		playingIntro:      true,
+		categorySelection: false,
+		displayingResults: false,
 	}
 }
 
@@ -153,6 +121,10 @@ func printResults(m model) string {
 
 type initMsg int
 
+type displayResultsMsg int
+
+type stopIntroMsg int
+
 func (m model) Init() tea.Cmd {
 	return func() tea.Msg { return initMsg(1) }
 }
@@ -177,8 +149,14 @@ func (m model) PreviousQuestion() model {
 
 func (m model) SelectionCursorDown() model {
 	m.cursor++
-	if m.cursor >= len(m.QuestionBank[m.current].Choices) {
-		m.cursor = 0
+	if m.categorySelection {
+		if m.cursor >= len(m.categories) {
+			m.cursor = 0
+		}
+	} else {
+		if m.cursor >= len(m.QuestionBank[m.current].Choices) {
+			m.cursor = 0
+		}
 	}
 	return m
 }
@@ -186,12 +164,14 @@ func (m model) SelectionCursorDown() model {
 func (m model) SelectionCursorUp() model {
 	m.cursor--
 	if m.cursor < 0 {
-		m.cursor = len(m.QuestionBank[m.current].Choices)
+		if m.categorySelection {
+			m.cursor = len(m.categories)
+		} else {
+			m.cursor = len(m.QuestionBank[m.current].Choices)
+		}
 	}
 	return m
 }
-
-type displayResultsMsg int
 
 func signalDisplayResults() tea.Msg {
 	return displayResultsMsg(1)
@@ -204,8 +184,6 @@ func signalDone() tea.Msg {
 func stopIntro() tea.Msg {
 	return stopIntroMsg(1)
 }
-
-type stopIntroMsg int
 
 func triggerDisableIntro() tea.Msg {
 	<-time.After(3 * time.Second)
@@ -232,6 +210,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case stopIntroMsg:
 		m.playingIntro = false
+		m.categorySelection = true
 		return m, nil
 
 	case displayResultsMsg:
@@ -272,6 +251,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case "enter":
+			// If we're in category selection mode, and the user presses enter, they've selected a category
+			// of questions to practice, so use it to filter questions
+
+			if m.categorySelection {
+				selectedCategory := m.categories[m.cursor]
+				m.QuestionBank = questions.GetQuestionsByCategory(selectedCategory)
+				m.categorySelection = false
+				return m, nil
+			}
+
 			// Record user's submission
 			m.recordAnswer(m.current, m.cursor)
 
@@ -304,6 +293,25 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) RenderIntroView() string {
 	return IntroBannerStyle.Render("Welcome to\nAWS QUIZ OVER SSH\nA Zachary Proser joint\n")
+}
+
+func (m model) RenderCategorySelectionView() string {
+	s := strings.Builder{}
+
+	s.WriteString(fmt.Sprintf("# Choose a category to practice\n\n"))
+
+	for i := 0; i < len(m.categories); i++ {
+		if m.cursor == i {
+			s.WriteString(fmt.Sprintf("[%s] ", SuccessEmoji))
+		} else {
+			s.WriteString("[  ] ")
+		}
+		s.WriteString(wordwrap.WrapString(m.categories[i], 65))
+		s.WriteString("\n\n")
+	}
+	s.WriteString("\n # (q quit - {up, k} up - {down, j} down - enter select)\n")
+
+	return s.String()
 }
 
 func (m model) RenderQuizView() string {
@@ -340,18 +348,20 @@ func (m model) View() string {
 		s.WriteString(m.RenderResultsView())
 	} else if m.playingIntro {
 		s.WriteString(m.RenderIntroView())
+	} else if m.categorySelection {
+		s.WriteString(m.RenderCategorySelectionView())
 	} else {
 		s.WriteString(m.RenderQuizView())
 	}
 
 	var final string
-
+	// These two views are current styled indepdendently of glamour, so just return their string value
 	if m.playingIntro || m.displayingResults {
 		final = s.String()
 	} else {
+		// Everything else is intended to be a markdown view, so render it as such
 		final, _ = glamour.Render(s.String(), "dark")
 	}
-
 	return final
 }
 
