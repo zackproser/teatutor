@@ -23,6 +23,16 @@ func loadInitialQuestions() {
 
 	m["IAM"] = []Question{
 		{
+			Prompt: "What is a trust policy in the context of an IAM role?",
+			Choices: []string{
+				"A trust policy determines which principals are allowed to assume the IAM role",
+				"A trust policy determines which AWS accounts are allowed to assume the IAM role",
+				"A trust policy determines which services the IAM role is allowed to operate on",
+				"A trust policy determines which security credentials can be associated with the IAM role",
+			},
+			CorrectAnswerIdx: 0,
+		},
+		{
 			Prompt: "You need to provide AWS credentials to an EC2 instance so that an application running on the instance can contact the S3 and DynamoDB services. How should you provide AWS credentials to the instance?",
 			Choices: []string{
 				"Create an IAM role. Assign the role to an instance profile. Attach the instance profile to the EC2 instance",
