@@ -77,3 +77,12 @@ questions:
     choices:
       - "True"
       - "False"
+  - category: "Lambda"
+    prompt: "How many executions per second can a lambda function handle?"
+    choices: 
+      - "Tens of executions per second"
+      - "Hundreds of executions per second"
+      - "Thousands of executions per second"
+      - "Tens of thousands of executions per second"
+    correct_answer_idx: 2
+

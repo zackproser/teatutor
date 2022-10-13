@@ -37,9 +37,13 @@ var HeaderStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#FAFAFA")).
 	Background(lipgloss.Color("#7D56F4"))
 
+var QuestionStyle = lipgloss.NewStyle().
+	Foreground(lipgloss.Color("#17E9A7"))
+
 var (
-	FailureEmoji = "❌"
-	SuccessEmoji = "✅"
+	FailureEmoji  = "❌"
+	SuccessEmoji  = "✅"
+	QuestionEmoji = "⁉️"
 )
 
 type doneMsg int
@@ -326,7 +330,7 @@ func (m model) RenderQuizView() string {
 
 	s := strings.Builder{}
 	s.WriteString(fmt.Sprintf("# Question #%d\n\n", m.current))
-	s.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(currentQ.Prompt, 65)))
+	s.WriteString((fmt.Sprintf("**%s  %s %s**\n\n", QuestionEmoji, wordwrap.WrapString(currentQ.Prompt, 65), QuestionEmoji)))
 
 	for i := 0; i < len(currentQ.Choices); i++ {
 		if m.cursor == i {
