@@ -24,6 +24,8 @@ import (
 	lm "github.com/charmbracelet/wish/logging"
 	"github.com/gliderlabs/ssh"
 	"github.com/mitchellh/go-wordwrap"
+	"github.com/pterm/pterm"
+	"github.com/pterm/pterm/putils"
 	"github.com/zackproser/bubbletea-ssh-aws-quiz/questions"
 	"golang.org/x/term"
 )
@@ -357,11 +359,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) RenderIntroView() string {
 	sb := strings.Builder{}
 
-	introBannerText := fmt.Sprintf("WELCOME TO\n\nAWS QUIZ OVER SSH\n\n\n\nA Zachary Proser \n\n %s joint %s \n\n", m.spinner.View(), m.spinner.View())
+	welcomeTo, _ := pterm.DefaultBigText.WithLetters(
+		putils.LettersFromStringWithRGB("WELCOME TO", pterm.NewRGB(255, 215, 0))).
+		Srender()
+
+	awsQuiz, _ := pterm.DefaultBigText.WithLetters(
+		putils.LettersFromStringWithRGB("AWS QUIZ", pterm.NewRGB(255, 215, 0))).
+		Srender()
+
+	overSSH, _ := pterm.DefaultBigText.WithLetters(
+		putils.LettersFromStringWithRGB("OVER SSH", pterm.NewRGB(255, 215, 0))).
+		Srender()
+
+	introBannerText := fmt.Sprintf("A Zachary Proser \n\n %s joint %s \n\n", m.spinner.View(), m.spinner.View())
 
 	getStartedPrompt := BlinkingStyle.Render("[ Press ENTER to get started ]")
 
-	fullBannerText := IntroBannerStyle.Render(introBannerText) + getStartedPrompt
+	fullBannerText := welcomeTo + "\n\n" + awsQuiz + "\n\n" + overSSH + "\n\n" + IntroBannerStyle.Render(introBannerText) + getStartedPrompt
 
 	tWidth, _, _ := term.GetSize(0)
 
