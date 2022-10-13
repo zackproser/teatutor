@@ -32,15 +32,16 @@ var IntroBannerStyle = lipgloss.NewStyle().
 	Bold(true).
 	Foreground(lipgloss.Color("#13EC1F")).
 	Align(lipgloss.Center).
-	Width(80).
 	Margin(2).
-	Padding(5)
+	Padding(2)
 
 var AppTitleStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#29A4D6")).
 	Inherit(IntroBannerStyle)
 
-var BlinkingStyle = IntroBannerStyle.Copy()
+var BlinkingStyle = IntroBannerStyle.Copy().
+	Blink(true).
+	Foreground(lipgloss.Color("#FFA600"))
 
 var HeaderStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#FAFAFA")).
@@ -356,13 +357,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) RenderIntroView() string {
 	sb := strings.Builder{}
 
-	introBannerText := IntroBannerStyle.Render(fmt.Sprintf("WELCOME TO\n\nAWS QUIZ OVER SSH\n\nA Zachary Proser \n\n %s joint %s \n\n", m.spinner.View(), m.spinner.View()))
+	introBannerText := fmt.Sprintf("WELCOME TO\n\nAWS QUIZ OVER SSH\n\n\n\nA Zachary Proser \n\n %s joint %s \n\n", m.spinner.View(), m.spinner.View())
+
 	getStartedPrompt := BlinkingStyle.Render("[ Press ENTER to get started ]")
+
+	fullBannerText := IntroBannerStyle.Render(introBannerText) + getStartedPrompt
 
 	tWidth, _, _ := term.GetSize(0)
 
-	sb.WriteString(lipgloss.PlaceHorizontal(tWidth, lipgloss.Center, introBannerText))
-	sb.WriteString(getStartedPrompt)
+	sb.WriteString(lipgloss.PlaceHorizontal(tWidth, lipgloss.Center, fullBannerText))
 
 	return sb.String()
 }
@@ -370,7 +373,6 @@ func (m model) RenderIntroView() string {
 func (m model) RenderCategorySelectionView() string {
 	s := strings.Builder{}
 
-	s.WriteString(m.spinner.View())
 	s.WriteString(fmt.Sprintf("# Choose a category to practice\n\n"))
 
 	for i := 0; i < len(m.categories); i++ {
