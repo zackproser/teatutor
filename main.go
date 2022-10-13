@@ -9,10 +9,12 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
@@ -30,8 +32,15 @@ var IntroBannerStyle = lipgloss.NewStyle().
 	Bold(true).
 	Foreground(lipgloss.Color("#13EC1F")).
 	Align(lipgloss.Center).
-	Width(24).
-	Margin(2)
+	Width(80).
+	Margin(2).
+	Padding(5)
+
+var AppTitleStyle = lipgloss.NewStyle().
+	Foreground(lipgloss.Color("#29A4D6")).
+	Inherit(IntroBannerStyle)
+
+var BlinkingStyle = IntroBannerStyle.Copy()
 
 var HeaderStyle = lipgloss.NewStyle().
 	Foreground(lipgloss.Color("#FAFAFA")).
@@ -60,9 +69,13 @@ type model struct {
 	answers           map[int]int
 	results           string
 	viewport          viewport.Model
+	spinner           spinner.Model
 }
 
 func initialModel() model {
+	s := spinner.New()
+	s.Spinner.Frames = spinner.Monkey.Frames
+	s.Spinner.FPS = 1 * time.Second
 	return model{
 		cursor:            0,
 		current:           0,
@@ -73,6 +86,7 @@ func initialModel() model {
 		playingIntro:      true,
 		categorySelection: false,
 		displayingResults: false,
+		spinner:           s,
 	}
 }
 
@@ -103,17 +117,51 @@ func (m model) RenderScore() string {
 	return fmt.Sprintf("%.0f%%", floatVal)
 }
 
+// Return 85% of the supplied value - used to render horizontal lines that don't go
+// all the way to the end of the line
+func getHorizontalLineLength(total int) int {
+	return int((float64(total) * float64(85)) / float64(100))
+}
+
+type Answer struct {
+	QuestionNum int
+	ResponseNum int
+}
+
+func sortUserResponses(m map[int]int) []Answer {
+	answers := make([]Answer, len(m))
+	for k, v := range m {
+		answers = append(answers, Answer{QuestionNum: k, ResponseNum: v})
+	}
+	sort.Slice(answers, func(i, j int) bool {
+		return answers[i].QuestionNum < answers[j].QuestionNum
+	})
+	return answers
+}
+
 func printResults(m model) string {
 	sb := strings.Builder{}
 
-	for questionNum, responseNum := range m.answers {
-		sb.WriteString(fmt.Sprintf("**Question %d** \n\n", questionNum))
-		sb.WriteString(fmt.Sprintf("%s\n\n", wordwrap.WrapString(m.QuestionBank[questionNum].Prompt, 65)))
+	tWidth, _, _ := term.GetSize(0)
+	horizontalDelimiter := "."
+
+	sortedUserResponses := sortUserResponses(m.answers)
+
+	for _, userResponse := range sortedUserResponses {
+		sb.WriteString("\n\n")
+
+		sb.WriteString(fmt.Sprintf("# %s\n\n", wordwrap.WrapString(m.QuestionBank[userResponse.QuestionNum].Prompt, 65)))
 		sb.WriteString(fmt.Sprintf("**Your answer**:\n\n"))
 		sb.WriteString(
 			fmt.Sprintf("%s %s\n\n",
-				renderCorrectColumn(m.QuestionBank[questionNum].CorrectAnswerIdx, responseNum),
-				wordwrap.WrapString(m.QuestionBank[questionNum].Choices[responseNum], 65)))
+				renderCorrectColumn(m.QuestionBank[userResponse.QuestionNum].CorrectAnswerIdx, userResponse.ResponseNum),
+				wordwrap.WrapString(m.QuestionBank[userResponse.QuestionNum].Choices[userResponse.ResponseNum], 65)))
+		// Render a visual border
+		for i := 0; i < getHorizontalLineLength(tWidth); i++ {
+			sb.WriteString(horizontalDelimiter)
+		}
+		sb.WriteString("\n\n")
+
 		sb.WriteString("\n\n\n\n")
 	}
 
@@ -128,8 +176,12 @@ type displayResultsMsg int
 
 type stopIntroMsg int
 
+func sendInitMsg() tea.Msg {
+	return initMsg(1)
+}
+
 func (m model) Init() tea.Cmd {
-	return func() tea.Msg { return initMsg(1) }
+	return tea.Batch(sendInitMsg, m.spinner.Tick)
 }
 
 func (m model) NextQuestion() model {
@@ -206,8 +258,9 @@ func sendWindowSizeMsg() tea.Msg {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
+		viewportCmd tea.Cmd
+		spinnerCmd  tea.Cmd
+		cmds        []tea.Cmd
 	)
 	switch msg := msg.(type) {
 
@@ -293,19 +346,31 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Handle keyboard and mouse events in the viewport
-	m.viewport, cmd = m.viewport.Update(msg)
-	cmds = append(cmds, cmd)
+	m.viewport, viewportCmd = m.viewport.Update(msg)
+	m.spinner, spinnerCmd = m.spinner.Update(msg)
+	cmds = append(cmds, viewportCmd, spinnerCmd)
 
 	return m, tea.Batch(cmds...)
 }
 
 func (m model) RenderIntroView() string {
-	return IntroBannerStyle.Render("Welcome to\nAWS QUIZ OVER SSH\nA Zachary Proser joint\n\n\nPress enter to get started")
+	sb := strings.Builder{}
+
+	introBannerText := IntroBannerStyle.Render(fmt.Sprintf("WELCOME TO\n\nAWS QUIZ OVER SSH\n\nA Zachary Proser \n\n %s joint %s \n\n", m.spinner.View(), m.spinner.View()))
+	getStartedPrompt := BlinkingStyle.Render("[ Press ENTER to get started ]")
+
+	tWidth, _, _ := term.GetSize(0)
+
+	sb.WriteString(lipgloss.PlaceHorizontal(tWidth, lipgloss.Center, introBannerText))
+	sb.WriteString(getStartedPrompt)
+
+	return sb.String()
 }
 
 func (m model) RenderCategorySelectionView() string {
 	s := strings.Builder{}
 
+	s.WriteString(m.spinner.View())
 	s.WriteString(fmt.Sprintf("# Choose a category to practice\n\n"))
 
 	for i := 0; i < len(m.categories); i++ {
