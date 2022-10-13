@@ -130,7 +130,7 @@ type Answer struct {
 }
 
 func sortUserResponses(m map[int]int) []Answer {
-	answers := make([]Answer, len(m))
+	answers := []Answer{}
 	for k, v := range m {
 		answers = append(answers, Answer{QuestionNum: k, ResponseNum: v})
 	}
