@@ -25,9 +25,18 @@ questions:
     prompt: "What is the maximum amount of time a lamdba function can run for?"
     choices:
       - "10 minutes"
+      - "5 minutes"
       - "15 minutes"
       - "25 minutes"
-    correct_answer_idx: 1
+      - "35 minutes"
+    correct_answer_idx: 2
+  - category: "Lambda"
+    prompt: "By default, how many concurrent executions does a lambda function support?"
+    choices: 
+      - "250"
+      - "500"
+      - "750" 
+      - "1000"
   - category: "Lambda"
     prompt: "Which of the following are valid ways to invoke a lambda function?"
     choices: 
@@ -45,6 +54,8 @@ questions:
       - "Synchronous invocation ensures that all consumers of the lambda function will receive the same results"
       - "Synchronous invocation waits for lambda to process the event and return a response, whereas asynchronous invocation queues the work but returns a response immediately"
       - "Asynchronous invocation is less expensive and more reliable"
+      - "Asynchronous invocation is not available for lambda functions"
+      - "Synchronous invocation is not available for lambda functions"
     correct_answer_idx: 1
   - category: "Lambda"
     prompt: "In the context of Lambda, what is a trigger?"
@@ -52,6 +63,7 @@ questions:
       - "A trigger is a special condition you specify when creating your lambda that determines which inputs the function will accept"
       - "A trigger is a Lambda resource or a resource in another service that you configure to invoke your function in response to lifecycle events, external requests, or on a schedule"
       - "A trigger is a safety feature that allows you to quickly stop a lambda function from processing. It can be used to prevent your lambda from operating on unsafe data"
+      - "A trigger is a signal you send to a lambda function that is misbehaving or encountering service issues due to rate limits. The trigger tells the lambda to shut down gracefully"
     correct_answer_idx: 1
   - category: "Lambda"
     prompt: "Can a single Lambda function have more than one trigger?"
@@ -65,10 +77,24 @@ questions:
       - "The event may or may not contain data from multiple sources or triggers"
       - "The event will contain data from the most recent invoker of the function"
       - "Each event will only ever contain data from a single client or trigger, because each invocation is independent, even when multiple clients or triggers are configured"
+      - "Each event object will contain a reference to the other events received in the same time slice"
     correct_answer_idx: 2
   - category: "S3"
     prompt: "All S3 Bucket names must be globally unique across all of AWS"
     choices:
+      - "True"
+      - "False"
+    correct_answer_idx: 0
+  - category: "S3" 
+    prompt: "S3 buckets are deployed regionally, so you must select a destination region when creating a new bucket"
+    choices: 
+      - "True"
+      - "False"
+    correct_answer_idx: 0
+
+  - category: "S3"
+    prompt: "By default, new S3 buckets are open and accessible by the entire world"
+    choices: 
       - "True"
       - "False"
     correct_answer_idx: 0
