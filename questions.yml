@@ -91,7 +91,6 @@ questions:
       - "True"
       - "False"
     correct_answer_idx: 0
-
   - category: "S3"
     prompt: "By default, new S3 buckets are open and accessible by the entire world"
     choices: 
@@ -103,6 +102,7 @@ questions:
     choices:
       - "True"
       - "False"
+    correct_answer_idx: 0
   - category: "Lambda"
     prompt: "How many executions per second can a lambda function handle?"
     choices: 
@@ -111,4 +111,74 @@ questions:
       - "Thousands of executions per second"
       - "Tens of thousands of executions per second"
     correct_answer_idx: 2
+  - category: "ECS"
+    prompt: "What is the task defintion within the context of ECS?"
+    choices: 
+      - "The task definition specifies how long a particular container is allowed to run on ECS" 
+      - "The task defintion is a simple human-legible description of the work that a given ECS job is going to perform"
+      - "The task definition allows you to specify the docker image to run, memory and CPU settings, logging configuration and more"
+      - "The task defintion is a queue and asynchronous job specification that allows you to define work that needs to happen periodically"
+    correct_answer_idx: 2
+  - category: "ECS"
+    prompt: "What are the two possible capacity strategies for an ECS cluster?"
+    choices:
+      - "EC2-backed, where you must deploy and correctly configure EC2 instances to join the ECS cluster, and Fargate, which is the serverless correlate that does not require you to manage individual servers"
+      - "EC2-backed, where you are charged the underlying cost of the EC2 servers that are forming your cluster, and Fargate, which allows connection to on-premises resources you are running outside of AWS"
+      - "Fargate is a higher tier of performance that leads to faster container cold starts at the tradeoff of being markedly more expensive than EC2-backed"
+      - "Advanced tier, which allows you to use larger EC2 instances to back the ECS cluster, and Standard tier, where you can only use EC2 instances up to size m4.large to back the ECS cluster"
+    correct_answer_idx: 0
+  - category: "ECS"
+    prompt: "Which answer best describes the different ideal use cases for the Fargate and EC2 capacity providers in ECS?"
+    choices:
+      - "You can only use EC2-backed clusters for ECS if you do not need the container running in ECS to connect to other AWS services"
+      - "Use Fargate for small or large workloads that require low admin overhead, tiny workloads and batch workloads, whereas the EC2-backed strategy is better for workloads that require consistently high CPU and memory usage"
+      - "Fargate is only suited for running simple, single-process binaries that do not connect to external services"
+      - "Fargate should never be used for production workloads as it does not support traffic over HTTPS"
+    correct_answer_idx: 1 
+  - category: "ECS" 
+    prompt: "What is AWS Copilot CLI?"
+    choices: 
+      - "AWS Copilot CLI is an AI assistant trained on billions of lines of public code to offer in-editor suggestions as you write code"
+      - "AWS Copilot CLI is an AI assistant that can monitor you while you code and alert you if you attempt to define an invalid ECS task definition"
+      - "AWS Copilot CLI is an open-source project that simplifies and partially automates the packaging and deployment of containerized apps for ECS and App Runner"
+      - "AWS Copilot CLI is an ECS cluster monitoring tool that is similar in concept to kubectl for managing kubernetes clusters"
+    correct_answer_idx: 2
+  - category: "ECS"
+    prompt: "You can use ECS to run applications that are not containerized"
+    choices: 
+      - "True"
+      - "False"
+    correct_answer_idx: 1
+  - category: "ECS"
+    prompt: "When writing an ECS task defintion, what is the maximum number of containers you can specify?"
+    choices: 
+      - "1"
+      - "3"
+      - "5"
+      - "10"
+      - "20"
+    correct_answer_idx: 3
+  - category: "ECS"
+    prompt: "You can define the ports to open for your application in the task defintion"
+    choices: 
+      - "True"
+      - "False"
+    correct_answer_idx: 0
+  - category: "ECS"
+    prompt: "An ECS container agent is required to be running on an EC2 instance backing an ECS cluster"
+    choices: 
+      - "True"
+      - "False"
+    correct_answer_idx: 0
+  - category: "ECS"
+    prompt: "What is the purpose of an ECS container agent?"
+    choices: 
+      - "An ECS container agent ensures that you don't attempt to run containers directly on EC2 instances that are backing an ECS cluster"
+      - "An ECS container agent sends information about currently running tasks and the resource utilization of your containers to ECS. It also starts and stops tasks whenever it receives a request from ECS"
+      - "An ECS container agent prevents any non-containerized apps from running on EC2 instances that are backing an ECS cluster"
+      - "An ECS container agent is installed by ECS on every new EC2 instance you launch after you first use the ECS service in a new AWS account"
+    correct_answer_idx: 1
+
+
+
 
