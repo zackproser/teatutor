@@ -462,7 +462,7 @@ func (m model) RenderQuizView() string {
 	currentQ := m.QuestionBank[m.current]
 
 	s := strings.Builder{}
-	s.WriteString(fmt.Sprintf("# Question #%d\n\n", m.current))
+	s.WriteString(fmt.Sprintf("# Question #%d\n\n", m.current+1))
 	s.WriteString((fmt.Sprintf("**%s  %s %s**\n\n", QuestionEmoji, wordwrap.WrapString(currentQ.Prompt, 65), QuestionEmoji)))
 
 	for i := 0; i < len(currentQ.Choices); i++ {

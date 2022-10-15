@@ -97,7 +97,7 @@ questions:
     choices: 
       - "True"
       - "False"
-    correct_answer_idx: 0
+    correct_answer_idx: 1
   - category: "S3"
     prompt: "You can use S3 to host a static web site"
     choices:
