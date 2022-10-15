@@ -1,6 +1,6 @@
 ---
 questions:
-  - category: "IAM"
+  - category: "Identity Access Management (IAM)"
     prompt: "What is a trust policy in the context of an IAM role?"
     choices:
       - "A trust policy determines which principals are allowed to assume the IAM role"
@@ -8,14 +8,14 @@ questions:
       - "A trust policy determines which security credentials can be associated with the IAM role"
       - "A trust policy determines which services the IAM role is allowed to operate on"
     correct_answer_idx: 0
-  - category: "IAM"
+  - category: "Identity Access Management (IAM)"
     prompt: "You need to provide AWS credentials to an EC2 instance so that an application running on the instance can contact the S3 and DynamoDB services. How should you provide AWS credentials to the instance?"
     choices:
       - "Create an IAM role. Assign the role to an instance profile. Attach the instance profile to the EC2 instance"
       - "Create an IAM user. Generate security credentials for the IAM user, then write them to ~/.aws/credentials on the EC2 instance"
       - "SSH into the EC2 instance. Export the ${AWS_ACCESS_KEY_ID} and ${AWS_SECRET_ACCESS_KEY} environment variables so that the application running on the instance can contact the other AWS services"
     correct_answer_idx: 0
-  - category: "IAM"
+  - category: "Identity Access Management (IAM)"
     prompt: "What should you do with the root account user?"
     choices:
       - "Use it to resolve permissions issues that are preventing services from functioning properly in your AWS account"
@@ -157,7 +157,7 @@ questions:
       - "Bucket policies can be up to 1MB in size"
       - "Bucket policies are limited to 20KB in size only if Versioning is enabled"
     correct_answer_idx: 1
-  - category: "ECS"
+  - category: "Elastic Container Service (ECS)"
     prompt: "What is the task defintion within the context of ECS?"
     choices: 
       - "The task definition specifies how long a particular container is allowed to run on ECS" 
@@ -165,7 +165,7 @@ questions:
       - "The task definition allows you to specify the docker image to run, memory and CPU settings, logging configuration and more"
       - "The task defintion is a queue and asynchronous job specification that allows you to define work that needs to happen periodically"
     correct_answer_idx: 2
-  - category: "ECS"
+  - category: "Elastic Container Service (ECS)"
     prompt: "What are the two possible capacity strategies for an ECS cluster?"
     choices:
       - "EC2-backed, where you must deploy and correctly configure EC2 instances to join the ECS cluster, and Fargate, which is the serverless correlate that does not require you to manage individual servers"
@@ -173,7 +173,7 @@ questions:
       - "Fargate is a higher tier of performance that leads to faster container cold starts at the tradeoff of being markedly more expensive than EC2-backed"
       - "Advanced tier, which allows you to use larger EC2 instances to back the ECS cluster, and Standard tier, where you can only use EC2 instances up to size m4.large to back the ECS cluster"
     correct_answer_idx: 0
-  - category: "ECS"
+  - category: "Elastic Container Service (ECS)"
     prompt: "Which answer best describes the different ideal use cases for the Fargate and EC2 capacity providers in ECS?"
     choices:
       - "You can only use EC2-backed clusters for ECS if you do not need the container running in ECS to connect to other AWS services"
@@ -181,7 +181,7 @@ questions:
       - "Fargate is only suited for running simple, single-process binaries that do not connect to external services"
       - "Fargate should never be used for production workloads as it does not support traffic over HTTPS"
     correct_answer_idx: 1 
-  - category: "ECS" 
+  - category: "Elastic Container Service (ECS)"
     prompt: "What is AWS Copilot CLI?"
     choices: 
       - "AWS Copilot CLI is an AI assistant trained on billions of lines of public code to offer in-editor suggestions as you write code"
@@ -189,13 +189,13 @@ questions:
       - "AWS Copilot CLI is an open-source project that simplifies and partially automates the packaging and deployment of containerized apps for ECS and App Runner"
       - "AWS Copilot CLI is an ECS cluster monitoring tool that is similar in concept to kubectl for managing kubernetes clusters"
     correct_answer_idx: 2
-  - category: "ECS"
+  - category: "Elastic Container Service (ECS)"
     prompt: "You can use ECS to run applications that are not containerized"
     choices: 
       - "True"
       - "False"
     correct_answer_idx: 1
-  - category: "ECS"
+  - category: "Elastic Container Service (ECS)"
     prompt: "When writing an ECS task defintion, what is the maximum number of containers you can specify?"
     choices: 
       - "1"
@@ -204,19 +204,19 @@ questions:
       - "10"
       - "20"
     correct_answer_idx: 3
-  - category: "ECS"
+  - category: "Elastic Container Service (ECS)"
     prompt: "You can define the ports to open for your application in the task defintion"
     choices: 
       - "True"
       - "False"
     correct_answer_idx: 0
-  - category: "ECS"
+  - category: "Elastic Container Service (ECS)"
     prompt: "An ECS container agent is required to be running on an EC2 instance backing an ECS cluster"
     choices: 
       - "True"
       - "False"
     correct_answer_idx: 0
-  - category: "ECS"
+  - category: "Elastic Container Service (ECS)"
     prompt: "What is the purpose of an ECS container agent?"
     choices: 
       - "An ECS container agent ensures that you don't attempt to run containers directly on EC2 instances that are backing an ECS cluster"
@@ -224,6 +224,41 @@ questions:
       - "An ECS container agent prevents any non-containerized apps from running on EC2 instances that are backing an ECS cluster"
       - "An ECS container agent is installed by ECS on every new EC2 instance you launch after you first use the ECS service in a new AWS account"
     correct_answer_idx: 1
+  - category: "Elastic Container Registry (ECR)"
+    prompt: "What is a registry?"
+    choices: 
+      - "A private registry is a logical grouping of one or more repositories for storing images. A private registry is provided to each AWS account"
+      - "A registry is the organization-specific setup information you are required to provide when creating your first ECR repository in your AWS account"
+      - "A registry is a third-party organization that ensures any images you store in AWS ECR are scanned and devoid of root exploits and vulnerabilities"
+      - "A registry holds the secret keys you must provide when authenticating to AWS ECR to pull Docker images"
+    correct_answer_idx: 0
+  - category: "Elastic Container Registry (ECR)"
+    prompt: "Can an AWS Elastic container registry (ECR) use native IAM authentication methods for every step of the workflow?"
+    choices: 
+      - "Only the root user can use IAM authentication methods to push and pull Docker images from ECR"
+      - "Anyone with Administrator level access can enable IAM authentication methods for their elastic container registry"
+      - "Yes - if you enable ECR IAM integration. This enables ECR to use IAM primitives like users and groups to authenticate Docker push and pull requests"
+      - "No - because the Docker CLI doesn't support native IAM authentication methods. This means you must perform some extra setup steps in order to get your Docker push and pull requests working. Most of the time you're working with ECR, you'll actually be running native Docker commands"
+    correct_answer_idx: 3 
+  - category: "Elastic Container Registry (ECR)"
+    prompt: "What is the ECR credential helper?"
+    choices: 
+      - "The ECR credential helper is the preferred and most secure means of storing your username and password for ECR, ensuring that only you have access to your registry"
+      - "The ECR credential helper is the protocol AWS uses to transmit your credentials to ECR securely"
+      - "The ECR credential helper is open-source software that automatically fetches Docker credentials for you from ECR whenever you run Docker push or Docker pull commands"
+      - "The ECR credential helper is the name of the project that helps AWS securely store your pushed Docker images"
+    correct_answer_idx: 2
+  - category: "Elastic Container Registry (ECR)"
+    prompt: "What is a Repository policy?"
+    choices: 
+      - "An ECR Repository policy is a resource-based policy that allows you to define granular repository access permissions for IAM users and roles"
+      - "An ECR Repository policy defines which kind of images can be stored and which image types should be rejected"
+      - "An ECR Repository policy is an IAM policy that you attach to IAM users or groups who you want to have access to your images"
+      - "An ECR Repository policy is a lifecycle policy that determines how long ECR images should be retained before being purged "
+    correct_answer_idx: 0
+
+
+
 
 
 
