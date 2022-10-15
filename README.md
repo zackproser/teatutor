@@ -1,9 +1,27 @@
-# Bubbletea AWS Certification Quiz App
-Better name forthcoming. This is a [bubbletea](github.com/charmbracelet/bubbletea) program designed to be run locally or over ssh 
+# Bubbletea AWS Quiz App
+
+![Bubbletea Quiz Over SSH](./docs/intro.png)
+
+This is a [bubbletea](github.com/charmbracelet/bubbletea) program designed to be run locally or over ssh. 
 
 It helps you study for AWS certification exams by providing a high quality set of questions and an easy to navigate, slide-deck-like interface. 
 
-When you complete your 
+When you first load the program, you are presented with a list of current study tracks to choose from. 
+
+![Choose a study category](./docs/categories.png)
+
+Choose a study topic to begin.
+
+![Bubbletea quiz slide deck](./docs/quiz1_000.png)
+
+You'll be asked a series of multiple choice and true or false questions that test your AWS product knowledge. You can page back and forth between questions and change your answers as needed. 
+
+![Bubbletea quiz advancing](./docs/quiz2_000.png)
+
+When you complete your quiz, you'll be shown the results page that reviews the questions you answered, your responses and whether they were correct. 
+
+![Results report](./docs/quiz-results2.png)
+
 
 # Demo 
 
