@@ -427,6 +427,7 @@ func (m model) RenderIntroView() string {
 	return sb.String()
 }
 
+// RenderCategorySelectionView is a markdown view that renders the picker allowing the user to select their topic of study
 func (m model) RenderCategorySelectionView() string {
 	s := strings.Builder{}
 
@@ -443,7 +444,9 @@ func (m model) RenderCategorySelectionView() string {
 	}
 	s.WriteString("\n # (q quit - {up, k} up - {down, j} down - enter select)\n")
 
-	return s.String()
+	rendered, _ := glamour.Render(s.String(), "dark")
+
+	return rendered
 }
 
 func (m model) RenderQuizProgressView() string {
@@ -451,6 +454,7 @@ func (m model) RenderQuizProgressView() string {
 	return "\n" + pad + m.progress.View() + "\n\n"
 }
 
+// RenderQuizView is a markdown view that represents the question prompt and multi-select interface
 func (m model) RenderQuizView() string {
 	if m.current >= len(m.QuestionBank) {
 		m.current = len(m.QuestionBank) - 1
@@ -471,11 +475,10 @@ func (m model) RenderQuizView() string {
 		s.WriteString("\n\n")
 	}
 
-	s.WriteString(fmt.Sprintf("debug: %s\n\n", m.debugMsg))
-	s.WriteString(fmt.Sprintf("percent: %v\n\n", m.percent))
-
 	s.WriteString("\n # (press q to quit - {h, <-} for prev - {l, ->} for next)\n")
-	return s.String()
+
+	rendered, _ := glamour.Render(s.String(), "dark")
+	return rendered
 }
 
 func (m model) RenderResultsView() string {
@@ -485,8 +488,6 @@ func (m model) RenderResultsView() string {
 func (m model) View() string {
 	s := strings.Builder{}
 
-	quizMode := false
-
 	if m.displayingResults {
 		s.WriteString(m.RenderResultsView())
 	} else if m.playingIntro {
@@ -494,24 +495,11 @@ func (m model) View() string {
 	} else if m.categorySelection {
 		s.WriteString(m.RenderCategorySelectionView())
 	} else {
-		quizMode = true
 		s.WriteString(m.RenderQuizView())
+		s.WriteString(m.RenderQuizProgressView())
 	}
 
-	var final string
-	// These two views are current styled indepdendently of glamour, so just return their string value
-	if m.playingIntro || m.displayingResults {
-		final = s.String()
-	} else {
-		// Everything else is intended to be a markdown view, so render it as such
-		final, _ = glamour.Render(s.String(), "dark")
-	}
-
-	if quizMode {
-		final += m.RenderQuizProgressView() + "\n\n"
-	}
-
-	return final
+	return s.String()
 }
 
 // You can wire any Bubble Tea model up to the middleware with a function that

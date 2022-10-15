@@ -37,6 +37,7 @@ questions:
       - "500"
       - "750" 
       - "1000"
+    correct_answer_idx: 3
   - category: "Lambda"
     prompt: "Which of the following are valid ways to invoke a lambda function?"
     choices: 
