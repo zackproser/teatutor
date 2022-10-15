@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
@@ -28,6 +29,11 @@ import (
 	"github.com/pterm/pterm/putils"
 	"github.com/zackproser/bubbletea-ssh-aws-quiz/questions"
 	"golang.org/x/term"
+)
+
+const (
+	padding  = 2
+	maxWidth = 80
 )
 
 var IntroBannerStyle = lipgloss.NewStyle().
@@ -60,6 +66,8 @@ var (
 
 type doneMsg int
 
+type tickMsg time.Time
+
 type model struct {
 	done              bool
 	categorySelection bool
@@ -73,12 +81,16 @@ type model struct {
 	results           string
 	viewport          viewport.Model
 	spinner           spinner.Model
+	progress          progress.Model
+	percent           float64
 }
 
 func initialModel() model {
 	s := spinner.New()
 	s.Spinner.Frames = spinner.Monkey.Frames
 	s.Spinner.FPS = 1 * time.Second
+
+	p := progress.New()
 	return model{
 		cursor:            0,
 		current:           0,
@@ -90,6 +102,8 @@ func initialModel() model {
 		categorySelection: false,
 		displayingResults: false,
 		spinner:           s,
+		progress:          p,
+		percent:           0.0,
 	}
 }
 
@@ -184,7 +198,7 @@ func sendInitMsg() tea.Msg {
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(sendInitMsg, m.spinner.Tick)
+	return tea.Batch(sendInitMsg, m.spinner.Tick, m.progress.SetPercent(0), tickCmd())
 }
 
 func (m model) NextQuestion() model {
@@ -263,6 +277,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		viewportCmd tea.Cmd
 		spinnerCmd  tea.Cmd
+		progressCmd tea.Cmd
 		cmds        []tea.Cmd
 	)
 	switch msg := msg.(type) {
@@ -280,6 +295,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case doneMsg:
 		m.done = true
 		return m, tea.Quit
+
+	// Sent when it's time to update the position of the progress bar relative to quiz completion
+	case tickMsg:
+		total := len(m.QuestionBank)
+		percent := (float64(m.current) * float64(100)) / float64(total)
+		m.percent = percent
+		cmds = append(cmds, tickCmd())
+
+		// FrameMsg is sent when the progress bar wants to animate itself
+	case progress.FrameMsg:
+		progressModel, cmd := m.progress.Update(msg)
+		m.progress = progressModel.(progress.Model)
+		return m, cmd
 
 	case tea.WindowSizeMsg:
 		headerHeight := lipgloss.Height(m.headerView())
@@ -303,6 +331,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.viewport.Width = msg.Width
 			m.viewport.Height = msg.Height - verticalMarginHeight
 		}
+
+		// Handle progress bar updates
+		m.progress.Width = msg.Width - padding*2 - 4
+		if m.progress.Width > maxWidth {
+			m.progress.Width = maxWidth
+		}
+		return m, nil
 
 	case tea.KeyMsg:
 		switch msg.String() {
@@ -351,7 +386,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Handle keyboard and mouse events in the viewport
 	m.viewport, viewportCmd = m.viewport.Update(msg)
 	m.spinner, spinnerCmd = m.spinner.Update(msg)
-	cmds = append(cmds, viewportCmd, spinnerCmd)
+	progressModel, progCmd := m.progress.Update(msg)
+	m.progress = progressModel.(progress.Model)
+	progressCmd = progCmd
+
+	cmds = append(cmds, viewportCmd, spinnerCmd, progressCmd)
 
 	return m, tea.Batch(cmds...)
 }
@@ -403,6 +442,10 @@ func (m model) RenderCategorySelectionView() string {
 	return s.String()
 }
 
+func (m model) RenderQuizProgressView() string {
+	return m.progress.View()
+}
+
 func (m model) RenderQuizView() string {
 	if m.current >= len(m.QuestionBank) {
 		m.current = len(m.QuestionBank) - 1
@@ -422,6 +465,9 @@ func (m model) RenderQuizView() string {
 		s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
 		s.WriteString("\n\n")
 	}
+
+	s.WriteString(fmt.Sprintf("percent: %v\n", m.percent))
+
 	s.WriteString("\n # (press q to quit - {h, <-} for prev - {l, ->} for next)\n")
 	return s.String()
 }
@@ -433,6 +479,8 @@ func (m model) RenderResultsView() string {
 func (m model) View() string {
 	s := strings.Builder{}
 
+	quizMode := false
+
 	if m.displayingResults {
 		s.WriteString(m.RenderResultsView())
 	} else if m.playingIntro {
@@ -440,6 +488,7 @@ func (m model) View() string {
 	} else if m.categorySelection {
 		s.WriteString(m.RenderCategorySelectionView())
 	} else {
+		quizMode = true
 		s.WriteString(m.RenderQuizView())
 	}
 
@@ -451,6 +500,11 @@ func (m model) View() string {
 		// Everything else is intended to be a markdown view, so render it as such
 		final, _ = glamour.Render(s.String(), "dark")
 	}
+
+	if quizMode {
+		final += m.RenderQuizProgressView() + "\n\n"
+	}
+
 	return final
 }
 
@@ -478,6 +532,12 @@ func (m model) footerView() string {
 	info := HeaderStyle.Render(fmt.Sprintf("%3.f%%", m.viewport.ScrollPercent()*100))
 	line := strings.Repeat("─", max(0, m.viewport.Width-lipgloss.Width(info)))
 	return lipgloss.JoinHorizontal(lipgloss.Center, line, info)
+}
+
+func tickCmd() tea.Cmd {
+	return tea.Tick(time.Second*1, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
 }
 
 func max(a, b int) int {
