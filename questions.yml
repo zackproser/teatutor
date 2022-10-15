@@ -102,6 +102,43 @@ questions:
     choices:
       - "True"
       - "False"
+  - category: "S3"
+    prompt: "How many keys does a single object in an S3 bucket have?"
+    choices: 
+      - "Up to 5"
+      - "Always exactly one"
+      - "No more than 50"
+      - "A maximum of two: one primary key and one alias"
+    correct_answer_idx: 1
+  - category: "S3"
+    prompt: "Every object in Amazon S3 can be uniquely addressed through the combination of the web service endpoint, bucket name, key, and optionally, a version. For example, https://DOC-EXAMPLE-BUCKET.s3.us-west-2.amazonaws.com/photos/puppy.jpg"
+    choices: 
+      - "True"
+      - "False"
+    correct_answer_idx: 0
+  - category: "S3"
+    prompt: "What is S3 versioning?"
+    choices: 
+      - "Versioning is a strategy based on semantic versioning (semver) which allows for the organized naming of S3 buckets that are regularly updated" 
+      - "You can use S3 Versioning to keep multiple variants of an object in the same bucket. With S3 Versioning, you can preserve, retrieve, and restore every version of every object stored in your buckets. You can easily recover from both unintended user actions and application failures."
+      - "Versioning allows you to undo the previous action performed on each given object in an S3 bucket"
+      - "S3 versioning refers to the many improvements AWS has made to the speed and reliabilty of the S3 service itself over time"
+    correct_answer_idx: 1
+  - category: "S3"
+    prompt: "What is an S3 bucket policy?"
+    choices: 
+      - "A bucket policy specifies how many objects, total, may be stored in your S3 bucket"
+      - "A bucket policy is an IAM entity that allows buckets to act as web servers when used to host static sites"
+      - "A bucket policy defines what day of the month you want to be billed for your S3 service usage"
+      - "A bucket policy is a resource-based AWS Identity and Access Management (IAM) policy that you can use to grant access permissions to your bucket and the objects in it. "
+    correct_answer_idx: 3
+  - category: "S3"
+    prompt: "Who is allowed to specify a bucket policy?"
+    choices: 
+      - "Only the bucket owner"
+      - "Any IAM user in the account with the AdministratorAccess managed IAM policy attached"
+      - "Anyone who has uploaded something to the bucket before"
+      - "Only the root user of the account the S3 bucket was initially created in"
     correct_answer_idx: 0
   - category: "Lambda"
     prompt: "How many executions per second can a lambda function handle?"
@@ -111,6 +148,14 @@ questions:
       - "Thousands of executions per second"
       - "Tens of thousands of executions per second"
     correct_answer_idx: 2
+  - category: "S3"
+    prompt: "Do bucket policies have a size limit?"
+    choices: 
+      - "No, there is no size limit for an S3 bucket policy"
+      - "Yes, they can be no larger than 20KB"
+      - "Bucket policies can be up to 1MB in size"
+      - "Bucket policies are limited to 20KB in size only if Versioning is enabled"
+    correct_answer_idx: 1
   - category: "ECS"
     prompt: "What is the task defintion within the context of ECS?"
     choices: 
