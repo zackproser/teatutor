@@ -83,6 +83,7 @@ type model struct {
 	spinner           spinner.Model
 	progress          progress.Model
 	percent           float64
+	debugMsg          string
 }
 
 func initialModel() model {
@@ -104,6 +105,7 @@ func initialModel() model {
 		spinner:           s,
 		progress:          p,
 		percent:           0.0,
+		debugMsg:          "",
 	}
 }
 
@@ -212,7 +214,7 @@ func (m model) NextQuestion() model {
 
 func (m model) PreviousQuestion() model {
 	m.current--
-	if m.current <= len(m.QuestionBank) {
+	if m.current <= 0 {
 		m.current = 0
 	}
 	m.cursor = 0
@@ -299,12 +301,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Sent when it's time to update the position of the progress bar relative to quiz completion
 	case tickMsg:
 		total := len(m.QuestionBank)
-		percent := (float64(m.current) * float64(100)) / float64(total)
+		percent := float64(m.current) / float64(total)
+		percent = float64(int(percent*100)) / 100
 		m.percent = percent
-		cmds = append(cmds, tickCmd())
+		cmds = append(cmds, tickCmd(), m.progress.SetPercent(percent))
 
 		// FrameMsg is sent when the progress bar wants to animate itself
 	case progress.FrameMsg:
+		// m.debugMsg = fmt.Sprintf("Received FrameMsg: %+v\n", msg)
 		progressModel, cmd := m.progress.Update(msg)
 		m.progress = progressModel.(progress.Model)
 		return m, cmd
@@ -443,7 +447,8 @@ func (m model) RenderCategorySelectionView() string {
 }
 
 func (m model) RenderQuizProgressView() string {
-	return m.progress.View()
+	pad := strings.Repeat(" ", padding)
+	return "\n" + pad + m.progress.View() + "\n\n"
 }
 
 func (m model) RenderQuizView() string {
@@ -466,7 +471,8 @@ func (m model) RenderQuizView() string {
 		s.WriteString("\n\n")
 	}
 
-	s.WriteString(fmt.Sprintf("percent: %v\n", m.percent))
+	s.WriteString(fmt.Sprintf("debug: %s\n\n", m.debugMsg))
+	s.WriteString(fmt.Sprintf("percent: %v\n\n", m.percent))
 
 	s.WriteString("\n # (press q to quit - {h, <-} for prev - {l, ->} for next)\n")
 	return s.String()
