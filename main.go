@@ -25,6 +25,7 @@ import (
 	lm "github.com/charmbracelet/wish/logging"
 	"github.com/gliderlabs/ssh"
 	"github.com/mitchellh/go-wordwrap"
+	"github.com/muesli/termenv"
 	"github.com/pterm/pterm"
 	"github.com/pterm/pterm/putils"
 	"github.com/zackproser/bubbletea-ssh-aws-quiz/questions"
@@ -268,6 +269,7 @@ func stopIntro() tea.Msg {
 }
 
 func sendWindowSizeMsg() tea.Msg {
+	time.Sleep(500 * time.Millisecond)
 	width, height, _ := term.GetSize(0)
 	return tea.WindowSizeMsg{
 		Width:  width,
@@ -513,7 +515,7 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 		return nil, nil
 	}
 	m := initialModel()
-	return m, []tea.ProgramOption{}
+	return m, []tea.ProgramOption{tea.WithInput(s), tea.WithOutput(s)}
 }
 
 func (m model) headerView() string {
@@ -554,7 +556,7 @@ func main() {
 			wish.WithAddress(fmt.Sprintf("%s:%d", host, port)),
 			wish.WithHostKeyPath(".ssh/term_info_ed25519"),
 			wish.WithMiddleware(
-				bm.Middleware(teaHandler),
+				bm.MiddlewareWithColorProfile(teaHandler, termenv.TrueColor),
 				lm.Middleware(),
 			),
 		)
