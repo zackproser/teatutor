@@ -4,19 +4,21 @@
 
 This is a [bubbletea](github.com/charmbracelet/bubbletea) program designed to be run locally or over ssh. 
 
-![Bubbletea Quiz Over SSH](./docs/intro.png)
 
 # Demos
 
-* YouTube 
+[![Tea Tutor Demo](http://img.youtube.com/vi/Dk2neG9vp84/0.jpg)](http://www.youtube.com/watch?v=Dk2neG9vp84 "Tea Tutor Demo")
 
-Early version recorded via Asciinema  [https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4](https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4)
+Early version recorded via Asciinema:  
+* [https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4](https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4)
 
 
 # App at a glance
 
-It helps you study for AWS certification exams by providing a high quality set of questions and an easy to navigate, slide-deck-like interface. 
+Tea tutor helps you study for AWS certification exams by providing a high quality set of questions and an easy to navigate, slide-deck-like interface. 
 
+
+![Bubbletea Quiz Over SSH](./docs/intro.png)
 When you first load the program, you are presented with a list of current study tracks to choose from. 
 
 ![Choose a study category](./docs/categories.png)
