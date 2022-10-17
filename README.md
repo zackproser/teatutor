@@ -2,15 +2,12 @@
 
 ![Tea Tutor SSH Quiz application](./docs/logo.png)
 
-This is a [bubbletea](github.com/charmbracelet/bubbletea) program designed to be run locally or over ssh. 
+This is a [bubbletea](github.com/charmbracelet/bubbletea) program designed to be run locally or over ssh. You can use it to define and serve quizzes on any subject. 
 
 
-# Demos
+# Demo
 
 [![Tea Tutor Demo](http://img.youtube.com/vi/Dk2neG9vp84/0.jpg)](http://www.youtube.com/watch?v=Dk2neG9vp84 "Tea Tutor Demo")
-
-Early version recorded via Asciinema:  
-* [https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4](https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4)
 
 
 # App at a glance
@@ -38,6 +35,12 @@ When you complete your quiz, you'll be shown the results page that reviews the q
 
 # Usage 
 
+## How the current questions system works
+
+All questions are defined in the `questions.yml` file in the root of the project. Each of the categories defined in `questions.yml` is considered when rendering the category selection view that is shown immediately after the introduction view. In other words, if you create questions across 3 different categories, by filling in the `category:` field, then you'll see 3 categories in the picker when the app loads. 
+
+Therefore, you could edit `questions.yml` to contain questions and answers on any subject you wish, then re-deploy your app to serve the new questions.
+
 ## Run locally 
 
 `go run main.go` 
@@ -48,6 +51,9 @@ When you complete your quiz, you'll be shown the results page that reviews the q
 export QUIZ_SERVER=true 
 go run main.go
 ```
+
+Currently I've had the most success deploying the app via `tmux` - running `export QUIZ_SERVER=true && go run main.go` in a new tmux session on the server and then detaching from it. 
+I expect this to change once I'm able to sort out some issues using Systemd unit files. 
 
 ## Connect to server as a client 
 
