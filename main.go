@@ -28,7 +28,7 @@ import (
 	"github.com/muesli/termenv"
 	"github.com/pterm/pterm"
 	"github.com/pterm/pterm/putils"
-	"github.com/zackproser/bubbletea-ssh-aws-quiz/questions"
+	"github.com/zackproser/teatutor/questions"
 	"golang.org/x/term"
 )
 

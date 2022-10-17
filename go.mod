@@ -1,4 +1,4 @@
-module github.com/zackproser/bubbletea-ssh-aws-quiz
+module github.com/zackproser/teatutor
 
 go 1.18
 

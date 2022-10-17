@@ -1,8 +1,19 @@
-# Bubbletea AWS Quiz App
+# Tea Tutor 
+
+![Tea Tutor SSH Quiz application](./docs/logo.png)
+
+This is a [bubbletea](github.com/charmbracelet/bubbletea) program designed to be run locally or over ssh. 
 
 ![Bubbletea Quiz Over SSH](./docs/intro.png)
 
-This is a [bubbletea](github.com/charmbracelet/bubbletea) program designed to be run locally or over ssh. 
+# Demos
+
+* YouTube 
+
+Early version recorded via Asciinema  [https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4](https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4)
+
+
+# App at a glance
 
 It helps you study for AWS certification exams by providing a high quality set of questions and an easy to navigate, slide-deck-like interface. 
 
@@ -22,10 +33,6 @@ When you complete your quiz, you'll be shown the results page that reviews the q
 
 ![Results report](./docs/quiz-results2.png)
 
-
-# Demo 
-
-See [https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4](https://asciinema.org/a/6G1YbJG1W0nWa6bSkyPpotxk4)
 
 # Usage 
 
