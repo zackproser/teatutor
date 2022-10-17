@@ -292,8 +292,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case displayResultsMsg:
-		m.displayingResults = true
 		m.results = printResults(m)
+		m.displayingResults = true
 		return m, sendWindowSizeMsg
 
 	case doneMsg:
