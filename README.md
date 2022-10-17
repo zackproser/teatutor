@@ -2,7 +2,7 @@
 
 ![Tea Tutor SSH Quiz application](./docs/logo.png)
 
-This is a [bubbletea](github.com/charmbracelet/bubbletea) program designed to be run locally or over ssh. You can use it to define and serve quizzes on any subject. 
+This is a [Bubbletea](https://github.com/charmbracelet/bubbletea) program designed to be run locally or over ssh. You can use it to define and serve quizzes on any subject. 
 
 
 # Demo
