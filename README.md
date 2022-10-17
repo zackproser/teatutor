@@ -9,10 +9,15 @@ This is a [bubbletea](github.com/charmbracelet/bubbletea) program designed to be
 
 [![Tea Tutor Demo](http://img.youtube.com/vi/Dk2neG9vp84/0.jpg)](http://www.youtube.com/watch?v=Dk2neG9vp84 "Tea Tutor Demo")
 
+Depending on what I'm doing at the time - you may or may not have success hitting my test application: 
+`ssh -p 23234 quiz.zackproser.com`. 
+
 
 # App at a glance
 
-Tea tutor helps you study for AWS certification exams by providing a high quality set of questions and an easy to navigate, slide-deck-like interface. 
+Tea tutor helps you study whatever you want quickly, conveniently and discretely by providing a high quality set of questions and an easy to navigate, slide-deck-like interface that you can load in your terminal with a single command, e.g. `ssh -p 23234 quiz.zackproser.com`.
+
+For the purposes of demonstration and development, the app currently hardcodes a custom set of AWS certification exam prep questions. 
 
 
 ![Bubbletea Quiz Over SSH](./docs/intro.png)
