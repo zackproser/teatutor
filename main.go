@@ -439,20 +439,70 @@ var categoryViewTemplate = `
 # (q quit - {up, k} up - {down, j} down - enter select)
 `
 
+func NewData() map[string]interface{} {
+	return make(map[string]interface{})
+}
+
 func (m model) RenderCategorySelectionView() string {
 	data := make(map[string]interface{})
 	data["CategoryPickerHeader"] = "Choose a topic to study"
 	data["Categories"] = m.categories
 	data["Cursor"] = m.cursor
-	data["SuccessEmoji"] = SuccessEmoji
 	return m.RenderTemplateView("categoryViewTemplate", NewViewData(data, true))
 }
 
-// GetTemplateByName is a convenience method that returns the template of the supplied name
+var quizViewTemplate = `
+# Question #{{ .QuestionNum }}
+
+**{{ .QuestionEmoji }}  {{ .Prompt }} {{ .QuestionEmoji }}**
+`
+
+func (m model) RenderQuizView() string {
+	if m.current >= len(m.QuestionBank) {
+		m.current = len(m.QuestionBank) - 1
+	}
+	currentQ := m.QuestionBank[m.current]
+
+	data := NewData()
+	data["QuestionEmoji"] = QuestionEmoji
+	data["Prompt"] = currentQ.Prompt
+	return m.RenderTemplateView("quizViewTemplate", NewViewData(data, true))
+}
+
+// RenderQuizView is a markdown view that represents the question prompt and multi-select interface
+/*func (m model) RenderQuizView() string {
+	if m.current >= len(m.QuestionBank) {
+		m.current = len(m.QuestionBank) - 1
+	}
+	currentQ := m.QuestionBank[m.current]
+
+	s := strings.Builder{}
+	s.WriteString(fmt.Sprintf("# Question #%d\n\n", m.current+1))
+	s.WriteString((fmt.Sprintf("**%s  %s %s**\n\n", QuestionEmoji, wordwrap.WrapString(currentQ.Prompt, 65), QuestionEmoji)))
+
+	for i := 0; i < len(currentQ.Choices); i++ {
+		if m.cursor == i {
+			s.WriteString(fmt.Sprintf("[%s] ", SuccessEmoji))
+		} else {
+			s.WriteString("[  ] ")
+		}
+		s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
+		s.WriteString("\n\n")
+	}
+
+	s.WriteString("\n # (press q to quit - {h, <-} for prev - {l, ->} for next)\n")
+
+	rendered, _ := glamour.Render(s.String(), "dark")
+	return rendered
+}*/
+
+// GetTemplateByName is a convenience method that returns the template of the supplied nam
 func GetTemplateByName(templateName string) string {
 	switch templateName {
 	case "categoryViewTemplate":
 		return categoryViewTemplate
+	case "quizViewTemplate":
+		return quizViewTemplate
 	default:
 		return ""
 	}
@@ -488,33 +538,6 @@ func (m model) RenderTemplateView(templateName string, vd ViewData) string {
 func (m model) RenderQuizProgressView() string {
 	pad := strings.Repeat(" ", padding)
 	return "\n" + pad + m.progress.View() + "\n\n"
-}
-
-// RenderQuizView is a markdown view that represents the question prompt and multi-select interface
-func (m model) RenderQuizView() string {
-	if m.current >= len(m.QuestionBank) {
-		m.current = len(m.QuestionBank) - 1
-	}
-	currentQ := m.QuestionBank[m.current]
-
-	s := strings.Builder{}
-	s.WriteString(fmt.Sprintf("# Question #%d\n\n", m.current+1))
-	s.WriteString((fmt.Sprintf("**%s  %s %s**\n\n", QuestionEmoji, wordwrap.WrapString(currentQ.Prompt, 65), QuestionEmoji)))
-
-	for i := 0; i < len(currentQ.Choices); i++ {
-		if m.cursor == i {
-			s.WriteString(fmt.Sprintf("[%s] ", SuccessEmoji))
-		} else {
-			s.WriteString("[  ] ")
-		}
-		s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
-		s.WriteString("\n\n")
-	}
-
-	s.WriteString("\n # (press q to quit - {h, <-} for prev - {l, ->} for next)\n")
-
-	rendered, _ := glamour.Render(s.String(), "dark")
-	return rendered
 }
 
 func (m model) RenderResultsView() string {
