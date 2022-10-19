@@ -434,13 +434,9 @@ func (m model) RenderIntroView() string {
 var categoryViewTemplate = `
 # {{ .CategoryPickerHeader }}
 {{ range $idx, $val := .Categories }}
-	{{ if eq $idx $.Cursor }}
-	[$.SuccessEmoji]
-	{{ else }}
-	[ ] 
-	{{ end }}
-	{{ $val -}}
+	{{ if eq $idx $.Cursor }}[✅]{{ else }}[  ]{{ end }} {{ $val -}}
 {{ end }}
+# (q quit - {up, k} up - {down, j} down - enter select)
 `
 
 func (m model) RenderCategorySelectionView() string {
@@ -448,31 +444,11 @@ func (m model) RenderCategorySelectionView() string {
 	data["CategoryPickerHeader"] = "Choose a topic to study"
 	data["Categories"] = m.categories
 	data["Cursor"] = m.cursor
+	data["SuccessEmoji"] = SuccessEmoji
 	return m.RenderTemplateView("categoryViewTemplate", NewViewData(data, true))
 }
 
-// RenderCategorySelectionView is a markdown view that renders the picker allowing the user to select their topic of study
-/*func (m model) RenderCategorySelectionView() string {
-	s := strings.Builder{}
-
-	s.WriteString(fmt.Sprintf("# Choose a category to practice\n\n"))
-
-	for i := 0; i < len(m.categories); i++ {
-		if m.cursor == i {
-			s.WriteString(fmt.Sprintf("[%s] ", SuccessEmoji))
-		} else {
-			s.WriteString("[  ] ")
-		}
-		s.WriteString(wordwrap.WrapString(m.categories[i], 65))
-		s.WriteString("\n\n")
-	}
-	s.WriteString("\n # (q quit - {up, k} up - {down, j} down - enter select)\n")
-
-	rendered, _ := glamour.Render(s.String(), "dark")
-
-	return rendered
-}*/
-
+// GetTemplateByName is a convenience method that returns the template of the supplied name
 func GetTemplateByName(templateName string) string {
 	switch templateName {
 	case "categoryViewTemplate":
@@ -505,6 +481,7 @@ func (m model) RenderTemplateView(templateName string, vd ViewData) string {
 		return rendered
 	}
 
+	// Otherwise, just return the raw string, as it may already have had styles applied to it
 	return b.String()
 }
 
