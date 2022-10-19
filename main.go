@@ -444,7 +444,7 @@ func NewData() map[string]interface{} {
 }
 
 func (m model) RenderCategorySelectionView() string {
-	data := make(map[string]interface{})
+	data := NewData()
 	data["CategoryPickerHeader"] = "Choose a topic to study"
 	data["Categories"] = m.categories
 	data["Cursor"] = m.cursor
@@ -455,6 +455,13 @@ var quizViewTemplate = `
 # Question #{{ .QuestionNum }}
 
 **{{ .QuestionEmoji }}  {{ .Prompt }} {{ .QuestionEmoji }}**
+
+{{ range $idx, $choice := .Choices }}
+
+{{ if eq $idx $.Cursor }}[✅]{{ else }}[  ]{{ end }} {{ $choice }}
+
+{{ end }}
+# (q quit - {up, k} up - {down, j} down - {left, h} prev - {right, l} next - enter select)
 `
 
 func (m model) RenderQuizView() string {
@@ -466,35 +473,10 @@ func (m model) RenderQuizView() string {
 	data := NewData()
 	data["QuestionEmoji"] = QuestionEmoji
 	data["Prompt"] = currentQ.Prompt
+	data["Choices"] = currentQ.Choices
+	data["Cursor"] = m.cursor
 	return m.RenderTemplateView("quizViewTemplate", NewViewData(data, true))
 }
-
-// RenderQuizView is a markdown view that represents the question prompt and multi-select interface
-/*func (m model) RenderQuizView() string {
-	if m.current >= len(m.QuestionBank) {
-		m.current = len(m.QuestionBank) - 1
-	}
-	currentQ := m.QuestionBank[m.current]
-
-	s := strings.Builder{}
-	s.WriteString(fmt.Sprintf("# Question #%d\n\n", m.current+1))
-	s.WriteString((fmt.Sprintf("**%s  %s %s**\n\n", QuestionEmoji, wordwrap.WrapString(currentQ.Prompt, 65), QuestionEmoji)))
-
-	for i := 0; i < len(currentQ.Choices); i++ {
-		if m.cursor == i {
-			s.WriteString(fmt.Sprintf("[%s] ", SuccessEmoji))
-		} else {
-			s.WriteString("[  ] ")
-		}
-		s.WriteString(wordwrap.WrapString(currentQ.Choices[i], 65))
-		s.WriteString("\n\n")
-	}
-
-	s.WriteString("\n # (press q to quit - {h, <-} for prev - {l, ->} for next)\n")
-
-	rendered, _ := glamour.Render(s.String(), "dark")
-	return rendered
-}*/
 
 // GetTemplateByName is a convenience method that returns the template of the supplied nam
 func GetTemplateByName(templateName string) string {

@@ -112,7 +112,7 @@ questions:
       - "A maximum of two: one primary key and one alias"
     correct_answer_idx: 1
   - category: "S3"
-    prompt: "Every object in Amazon S3 can be uniquely addressed through the combination of the web service endpoint, bucket name, key, and optionally, a version. For example, https://DOC-EXAMPLE-BUCKET.s3.us-west-2.amazonaws.com/photos/puppy.jpg"
+    prompt: "Every object in Amazon S3 can be uniquely addressed through the combination of the web service endpoint, bucket name, key, and optionally, a version. For example, `https://DOC-EXAMPLE-BUCKET.s3.us-west-2.amazonaws.com/photos/puppy.jpg`"
     choices: 
       - "True"
       - "False"
