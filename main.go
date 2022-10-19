@@ -4,8 +4,10 @@ package main
 // program after the Bubble Tea has exited.
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"log"
 	"os"
 	"os/signal"
@@ -429,8 +431,28 @@ func (m model) RenderIntroView() string {
 	return sb.String()
 }
 
-// RenderCategorySelectionView is a markdown view that renders the picker allowing the user to select their topic of study
+var categoryViewTemplate = `
+# {{ .CategoryPickerHeader }}
+{{ range $idx, $val := .Categories }}
+	{{ if eq $idx $.Cursor }}
+	[$.SuccessEmoji]
+	{{ else }}
+	[ ] 
+	{{ end }}
+	{{ $val -}}
+{{ end }}
+`
+
 func (m model) RenderCategorySelectionView() string {
+	data := make(map[string]interface{})
+	data["CategoryPickerHeader"] = "Choose a topic to study"
+	data["Categories"] = m.categories
+	data["Cursor"] = m.cursor
+	return m.RenderTemplateView("categoryViewTemplate", NewViewData(data, true))
+}
+
+// RenderCategorySelectionView is a markdown view that renders the picker allowing the user to select their topic of study
+/*func (m model) RenderCategorySelectionView() string {
 	s := strings.Builder{}
 
 	s.WriteString(fmt.Sprintf("# Choose a category to practice\n\n"))
@@ -449,6 +471,41 @@ func (m model) RenderCategorySelectionView() string {
 	rendered, _ := glamour.Render(s.String(), "dark")
 
 	return rendered
+}*/
+
+func GetTemplateByName(templateName string) string {
+	switch templateName {
+	case "categoryViewTemplate":
+		return categoryViewTemplate
+	default:
+		return ""
+	}
+}
+
+type ViewData struct {
+	Data           map[string]interface{}
+	IsMarkdownView bool
+}
+
+func (m model) RenderTemplateView(templateName string, vd ViewData) string {
+	b := bytes.NewBuffer([]byte{})
+
+	t := template.Must(template.New(templateName).Parse(GetTemplateByName(templateName)))
+	exErr := t.Execute(b, vd.Data)
+	if exErr != nil {
+		fmt.Println("template execution err ", exErr)
+	}
+
+	// If the ViewData specifies that this is a Glamour / Markdown view, we pass it through the glamour render function
+	if vd.IsMarkdownView {
+		rendered, renderErr := glamour.Render(b.String(), "dark")
+		if renderErr != nil {
+			fmt.Println("renderErr: ", renderErr)
+		}
+		return rendered
+	}
+
+	return b.String()
 }
 
 func (m model) RenderQuizProgressView() string {
@@ -487,21 +544,24 @@ func (m model) RenderResultsView() string {
 	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 }
 
-func (m model) View() string {
-	s := strings.Builder{}
-
-	if m.displayingResults {
-		s.WriteString(m.RenderResultsView())
-	} else if m.playingIntro {
-		s.WriteString(m.RenderIntroView())
-	} else if m.categorySelection {
-		s.WriteString(m.RenderCategorySelectionView())
-	} else {
-		s.WriteString(m.RenderQuizView())
-		s.WriteString(m.RenderQuizProgressView())
+func NewViewData(data map[string]interface{}, isMarkdownView bool) ViewData {
+	return ViewData{
+		Data:           data,
+		IsMarkdownView: isMarkdownView,
 	}
+}
 
-	return s.String()
+func (m model) View() string {
+	switch {
+	case m.displayingResults:
+		return m.RenderResultsView()
+	case m.playingIntro:
+		return m.RenderIntroView()
+	case m.categorySelection:
+		return m.RenderCategorySelectionView()
+	default:
+		return m.RenderQuizView()
+	}
 }
 
 // You can wire any Bubble Tea model up to the middleware with a function that
