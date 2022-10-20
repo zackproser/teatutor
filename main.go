@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"math"
 	"os"
 	"os/signal"
 	"sort"
@@ -26,7 +27,6 @@ import (
 	bm "github.com/charmbracelet/wish/bubbletea"
 	lm "github.com/charmbracelet/wish/logging"
 	"github.com/gliderlabs/ssh"
-	"github.com/mitchellh/go-wordwrap"
 	"github.com/muesli/termenv"
 	"github.com/pterm/pterm"
 	"github.com/pterm/pterm/putils"
@@ -39,29 +39,29 @@ const (
 	maxWidth = 80
 )
 
-var IntroBannerStyle = lipgloss.NewStyle().
-	Bold(true).
-	Foreground(lipgloss.Color("#13EC1F")).
-	Align(lipgloss.Center).
-	Margin(2).
-	Padding(2)
-
-var AppTitleStyle = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("#29A4D6")).
-	Inherit(IntroBannerStyle)
-
-var BlinkingStyle = IntroBannerStyle.Copy().
-	Blink(true).
-	Foreground(lipgloss.Color("#FFA600"))
-
-var HeaderStyle = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("#FAFAFA")).
-	Background(lipgloss.Color("#7D56F4"))
-
-var QuestionStyle = lipgloss.NewStyle().
-	Foreground(lipgloss.Color("#17E9A7"))
-
 var (
+	IntroBannerStyle = lipgloss.NewStyle().
+				Bold(true).
+				Foreground(lipgloss.Color("#13EC1F")).
+				Align(lipgloss.Center).
+				Margin(2).
+				Padding(2)
+
+	AppTitleStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#29A4D6")).
+			Inherit(IntroBannerStyle)
+
+	BlinkingStyle = IntroBannerStyle.Copy().
+			Blink(true).
+			Foreground(lipgloss.Color("#FFA600"))
+
+	HeaderStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#FAFAFA")).
+			Background(lipgloss.Color("#7D56F4"))
+
+	QuestionStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#17E9A7"))
+
 	FailureEmoji  = "❌"
 	SuccessEmoji  = "✅"
 	QuestionEmoji = "⁉️"
@@ -70,6 +70,17 @@ var (
 type doneMsg int
 
 type tickMsg time.Time
+
+type initMsg int
+
+type displayResultsMsg int
+
+type stopIntroMsg int
+
+type Answer struct {
+	QuestionNum int
+	ResponseNum int
+}
 
 type model struct {
 	done              bool
@@ -145,11 +156,6 @@ func getHorizontalLineLength(total int) int {
 	return int((float64(total) * float64(85)) / float64(100))
 }
 
-type Answer struct {
-	QuestionNum int
-	ResponseNum int
-}
-
 func sortUserResponses(m map[int]int) []Answer {
 	answers := []Answer{}
 	for k, v := range m {
@@ -160,43 +166,6 @@ func sortUserResponses(m map[int]int) []Answer {
 	})
 	return answers
 }
-
-func printResults(m model) string {
-	sb := strings.Builder{}
-
-	tWidth, _, _ := term.GetSize(0)
-	horizontalDelimiter := "."
-
-	sortedUserResponses := sortUserResponses(m.answers)
-
-	for _, userResponse := range sortedUserResponses {
-		sb.WriteString("\n\n")
-
-		sb.WriteString(fmt.Sprintf("# %s\n\n", wordwrap.WrapString(m.QuestionBank[userResponse.QuestionNum].Prompt, 65)))
-		sb.WriteString(fmt.Sprintf("**Your answer**:\n\n"))
-		sb.WriteString(
-			fmt.Sprintf("%s %s\n\n",
-				renderCorrectColumn(m.QuestionBank[userResponse.QuestionNum].CorrectAnswerIdx, userResponse.ResponseNum),
-				wordwrap.WrapString(m.QuestionBank[userResponse.QuestionNum].Choices[userResponse.ResponseNum], 65)))
-		// Render a visual border
-		for i := 0; i < getHorizontalLineLength(tWidth); i++ {
-			sb.WriteString(horizontalDelimiter)
-		}
-		sb.WriteString("\n\n")
-
-		sb.WriteString("\n\n\n\n")
-	}
-
-	sb.WriteString(fmt.Sprintf("# Your score: %s", m.RenderScore()))
-
-	return sb.String()
-}
-
-type initMsg int
-
-type displayResultsMsg int
-
-type stopIntroMsg int
 
 func sendInitMsg() tea.Msg {
 	return initMsg(1)
@@ -294,7 +263,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case displayResultsMsg:
-		m.results = printResults(m)
+		m.results = m.RenderResultsView()
+
 		m.displayingResults = true
 		return m, sendWindowSizeMsg
 
@@ -431,6 +401,37 @@ func (m model) RenderIntroView() string {
 	return sb.String()
 }
 
+var resultsViewTemplate = `
+{{ range $idx, $response := .Responses }}
+#	{{  (index $.Questions $idx).Prompt }}
+
+	{{/* Render an emoji representing correct or incorrect */}}
+	{{ renderRightOrWrong (index $.Questions $response.QuestionNum).CorrectAnswerIdx $response.ResponseNum }} {{ index (index $.Questions $idx).Choices $response.ResponseNum }}
+
+	{{/* Render a dotted line underneath each question + answer row */}}
+	{{ range $idx := $.TerminalWidth -}}.{{ end }}
+{{ end }}
+# Your score: {{ .Score}}
+`
+
+func (m model) RenderResultsView() string {
+	// Get the width of the user's terminal
+	tWidth, _, _ := term.GetSize(0)
+
+	// Get 75% of that value, so that we can render horizontal dividers that don't wrap lines
+	dividerLen := int(math.Round(float64(tWidth) / float64(100) * float64(75)))
+
+	data := NewData()
+	// Go templates expect to iterate over an array - but we can make an essentially
+	// empty one with the exact length we want to iterate over
+	data["TerminalWidth"] = make([]struct{}, dividerLen)
+	data["Questions"] = m.QuestionBank
+	data["Responses"] = sortUserResponses(m.answers)
+	data["Score"] = m.RenderScore()
+
+	return m.RenderTemplateView(resultsViewTemplate, NewViewData(data, false))
+}
+
 var categoryViewTemplate = `
 # {{ .CategoryPickerHeader }}
 {{ range $idx, $val := .Categories }}
@@ -448,7 +449,7 @@ func (m model) RenderCategorySelectionView() string {
 	data["CategoryPickerHeader"] = "Choose a topic to study"
 	data["Categories"] = m.categories
 	data["Cursor"] = m.cursor
-	return m.RenderTemplateView("categoryViewTemplate", NewViewData(data, true))
+	return m.RenderTemplateView(categoryViewTemplate, NewViewData(data, true))
 }
 
 var quizViewTemplate = `
@@ -475,19 +476,7 @@ func (m model) RenderQuizView() string {
 	data["Prompt"] = currentQ.Prompt
 	data["Choices"] = currentQ.Choices
 	data["Cursor"] = m.cursor
-	return m.RenderTemplateView("quizViewTemplate", NewViewData(data, true))
-}
-
-// GetTemplateByName is a convenience method that returns the template of the supplied nam
-func GetTemplateByName(templateName string) string {
-	switch templateName {
-	case "categoryViewTemplate":
-		return categoryViewTemplate
-	case "quizViewTemplate":
-		return quizViewTemplate
-	default:
-		return ""
-	}
+	return m.RenderTemplateView(quizViewTemplate, NewViewData(data, true)) + m.RenderQuizProgressView()
 }
 
 type ViewData struct {
@@ -495,10 +484,23 @@ type ViewData struct {
 	IsMarkdownView bool
 }
 
-func (m model) RenderTemplateView(templateName string, vd ViewData) string {
+func (m model) RenderTemplateView(templateToRender string, vd ViewData) string {
 	b := bytes.NewBuffer([]byte{})
 
-	t := template.Must(template.New(templateName).Parse(GetTemplateByName(templateName)))
+	t := template.New(templateToRender)
+
+	// Register a template helper function that displays the check for a correct answer or cross for a wrong answer
+	t.Funcs(template.FuncMap{
+		"renderRightOrWrong": func(a, b int) string {
+			if a == b {
+				return SuccessEmoji
+			}
+			return FailureEmoji
+		},
+	})
+
+	template.Must(t.Parse(templateToRender))
+
 	exErr := t.Execute(b, vd.Data)
 	if exErr != nil {
 		fmt.Println("template execution err ", exErr)
@@ -517,13 +519,13 @@ func (m model) RenderTemplateView(templateName string, vd ViewData) string {
 	return b.String()
 }
 
+func (m model) RenderViewportResultsView() string {
+	return m.headerView() + m.viewport.View() + m.footerView()
+}
+
 func (m model) RenderQuizProgressView() string {
 	pad := strings.Repeat(" ", padding)
 	return "\n" + pad + m.progress.View() + "\n\n"
-}
-
-func (m model) RenderResultsView() string {
-	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 }
 
 func NewViewData(data map[string]interface{}, isMarkdownView bool) ViewData {
@@ -536,7 +538,7 @@ func NewViewData(data map[string]interface{}, isMarkdownView bool) ViewData {
 func (m model) View() string {
 	switch {
 	case m.displayingResults:
-		return m.RenderResultsView()
+		return m.RenderViewportResultsView()
 	case m.playingIntro:
 		return m.RenderIntroView()
 	case m.categorySelection:
