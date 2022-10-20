@@ -240,7 +240,7 @@ func stopIntro() tea.Msg {
 }
 
 func sendWindowSizeMsg() tea.Msg {
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 	width, height, _ := term.GetSize(0)
 	return tea.WindowSizeMsg{
 		Width:  width,
@@ -264,7 +264,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case displayResultsMsg:
 		m.results = m.RenderResultsView()
-
 		m.displayingResults = true
 		return m, sendWindowSizeMsg
 
