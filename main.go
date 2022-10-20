@@ -520,7 +520,7 @@ func (m model) RenderTemplateView(templateToRender string, vd ViewData) string {
 }
 
 func (m model) RenderViewportResultsView() string {
-	return m.headerView() + m.viewport.View() + m.footerView()
+	return fmt.Sprintf("%s\n%s\n%s", m.headerView(), m.viewport.View(), m.footerView())
 }
 
 func (m model) RenderQuizProgressView() string {
