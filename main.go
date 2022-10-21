@@ -264,6 +264,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case displayResultsMsg:
 		m.results = m.RenderResultsView()
+
+		_, tHeight, _ := term.GetSize(0)
+		m.viewport.Height = tHeight
 		m.displayingResults = true
 		return m, sendWindowSizeMsg
 

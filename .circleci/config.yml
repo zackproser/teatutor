@@ -1,0 +1,39 @@
+# .circleci/config.yml
+version: 2.1
+
+workflows:
+  main:
+    jobs:
+      - test
+      - release:
+          # Only run this job on git tag pushes
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v[0-9]+(\.[0-9]+)*(-.*)*/
+
+jobs:
+  test:
+    docker:
+      - image: cimg/go:1.17.7
+    steps:
+      - checkout
+      - run:
+          name: run tests
+          command: |
+            mkdir -p /tmp/logs
+            go test -v ./... --timeout 5m | tee /tmp/logs/test.log
+          # Tolerate a 4 minute window of no output
+          no_output_timeout: 240s
+      - store_artifacts:
+          path: /tmp/logs 
+      - store_test_results: 
+          path: /tmp/logs 
+
+  release:
+    docker:
+      - image: cimg/go:1.17
+    steps:
+      - checkout
+      - run: curl -sL https://git.io/goreleaser | bash
