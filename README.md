@@ -2,6 +2,9 @@
 
 ![Tea Tutor SSH Quiz application](./docs/logo.png)
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/zackproser/teatutor)](https://goreportcard.com/report/github.com/zackproser/teatutor)
+[![CircleCI](https://circleci.com/gh/zackproser/teatutor.svg?style=shield)](https://circleci.com/gh/zackproser/teatutor)
+
 This is a [Bubbletea](https://github.com/charmbracelet/bubbletea) program designed to be run locally or over ssh. You can use it to define and serve quizzes on any subject. 
 
 
