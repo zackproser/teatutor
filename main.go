@@ -35,8 +35,12 @@ import (
 )
 
 const (
-	padding  = 2
-	maxWidth = 80
+	padding                    = 2
+	maxWidth                   = 80
+	IntroMode             Mode = "intro"
+	CategorySelectionMode Mode = "category"
+	QuizMode              Mode = "quiz"
+	ResultsMode           Mode = "results"
 )
 
 var (
@@ -82,22 +86,22 @@ type Answer struct {
 	ResponseNum int
 }
 
+type Mode string
+
 type model struct {
-	done              bool
-	categorySelection bool
-	playingIntro      bool
-	displayingResults bool
-	cursor            int
-	current           int
-	categories        []string
-	QuestionBank      []questions.Question
-	answers           map[int]int
-	results           string
-	viewport          viewport.Model
-	spinner           spinner.Model
-	progress          progress.Model
-	percent           float64
-	debugMsg          string
+	done         bool
+	mode         Mode
+	cursor       int
+	current      int
+	categories   []string
+	QuestionBank []questions.Question
+	answers      map[int]int
+	results      string
+	viewport     viewport.Model
+	spinner      spinner.Model
+	progress     progress.Model
+	percent      float64
+	debugMsg     string
 }
 
 func initialModel() model {
@@ -107,19 +111,17 @@ func initialModel() model {
 
 	p := progress.New()
 	return model{
-		cursor:            0,
-		current:           0,
-		categories:        questions.ListCategories(),
-		QuestionBank:      make([]questions.Question, 0),
-		answers:           make(map[int]int),
-		done:              false,
-		playingIntro:      true,
-		categorySelection: false,
-		displayingResults: false,
-		spinner:           s,
-		progress:          p,
-		percent:           0.0,
-		debugMsg:          "",
+		cursor:       0,
+		current:      0,
+		categories:   questions.ListCategories(),
+		QuestionBank: make([]questions.Question, 0),
+		answers:      make(map[int]int),
+		done:         false,
+		mode:         IntroMode,
+		spinner:      s,
+		progress:     p,
+		percent:      0.0,
+		debugMsg:     "",
 	}
 }
 
@@ -194,12 +196,12 @@ func (m model) PreviousQuestion() model {
 }
 
 func (m model) SelectionCursorDown() model {
-	if m.playingIntro {
+	if m.mode == IntroMode {
 		return m
 	}
 
 	m.cursor++
-	if m.categorySelection {
+	if m.mode == CategorySelectionMode {
 		if m.cursor >= len(m.categories) {
 			m.cursor = 0
 		}
@@ -212,13 +214,13 @@ func (m model) SelectionCursorDown() model {
 }
 
 func (m model) SelectionCursorUp() model {
-	if m.playingIntro {
+	if m.mode == IntroMode {
 		return m
 	}
 
 	m.cursor--
 	if m.cursor < 0 {
-		if m.categorySelection {
+		if m.mode == CategorySelectionMode {
 			m.cursor = len(m.categories)
 		} else {
 			m.cursor = len(m.QuestionBank[m.current].Choices)
@@ -258,8 +260,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case stopIntroMsg:
-		m.playingIntro = false
-		m.categorySelection = true
+		m.mode = CategorySelectionMode
 		return m, nil
 
 	case displayResultsMsg:
@@ -267,7 +268,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		_, tHeight, _ := term.GetSize(0)
 		m.viewport.Height = tHeight
-		m.displayingResults = true
+		m.mode = ResultsMode
 		return m, sendWindowSizeMsg
 
 	case doneMsg:
@@ -294,7 +295,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		footerHeight := lipgloss.Height(m.footerView())
 		verticalMarginHeight := headerHeight + footerHeight
 
-		if m.displayingResults {
+		if m.mode == ResultsMode {
 
 			m.viewport = viewport.New(msg.Width, msg.Height-verticalMarginHeight)
 			m.viewport.YPosition = headerHeight
@@ -326,17 +327,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "enter":
 			// If we're playing the intro and the user presses enter, it means they're impatient to get started
-			if m.playingIntro {
+			if m.mode == IntroMode {
 				return m, stopIntro
 			}
 
 			// If we're in category selection mode, and the user presses enter, they've selected a category
 			// of questions to practice, so use it to filter questions
 
-			if m.categorySelection {
+			if m.mode == CategorySelectionMode {
 				selectedCategory := m.categories[m.cursor]
 				m.QuestionBank = questions.GetQuestionsByCategory(selectedCategory)
-				m.categorySelection = false
+				m.mode = QuizMode
 				return m, nil
 			}
 
@@ -538,12 +539,12 @@ func NewViewData(data map[string]interface{}, isMarkdownView bool) ViewData {
 }
 
 func (m model) View() string {
-	switch {
-	case m.displayingResults:
+	switch m.mode {
+	case ResultsMode:
 		return m.RenderViewportResultsView()
-	case m.playingIntro:
+	case IntroMode:
 		return m.RenderIntroView()
-	case m.categorySelection:
+	case CategorySelectionMode:
 		return m.RenderCategorySelectionView()
 	default:
 		return m.RenderQuizView()
